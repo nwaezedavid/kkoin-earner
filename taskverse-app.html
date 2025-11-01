@@ -707,7 +707,7 @@
 
                 <p class="friends-description">
                     Each active friend you refer gives you 250 points + increases your daily ad limit by 5!
-                </Please>
+                </p>
 
                 <button class="friends-button" id="open-share-btn">
                     Invite a Friend
@@ -1009,6 +1009,9 @@
                     // --- 4. Attach All Event Listeners ---
                     setupEventListeners();
 
+                    // --- 5. Show Interstitial Ad (if not in Demo Mode) ---
+                    showInterstitialAd();
+
                 } catch (error) {
                     console.error("Critical error during app initialization:", error);
                     showMessage("App Error", "Could not start the app. Please refresh.");
@@ -1100,13 +1103,14 @@
              */
             async function saveDataToFirestore() {
                 if (isDemoMode || !isFirebaseInitialized || !db) return;
-
+                console.log("Attempting to save data to Firestore..."); // Debug log
                 const userDocRef = getUserDocRef();
                 try {
                     // We use 'merge: true' to only update fields, not overwrite
                     await userDocRef.set(appState, {
                         merge: true
                     });
+                    console.log("Data successfully saved to Firestore."); // Debug log
                 } catch (error) {
                     console.error("Error saving data to Firestore:", error);
                 }
@@ -1126,6 +1130,7 @@
             * Saves data to localStorage (Demo Mode only).
             */
             function saveDataToLocalStorage() {
+                console.log("Saving data to localStorage (Demo Mode)"); // Debug log
                 localStorage.setItem(`kkoinState_${appState.userId}`, JSON.stringify(appState));
             }
 
@@ -1193,6 +1198,8 @@
              * Updates all visible UI elements to reflect the current appState.
              */
             function updateUI() {
+                console.log("Updating UI with new state:", appState); // Debug log
+
                 // Update header points
                 elements.pointsDisplay.textContent = Math.floor(appState.points).toLocaleString();
 
@@ -1351,6 +1358,56 @@
             }
 
             /**
+             * Shows the Interstitial Ad on app load (Live Mode only).
+             */
+            function showInterstitialAd() {
+                // Only show interstitial ads in the live app, not in demo mode
+                if (isDemoMode) {
+                    console.log("DEMO MODE: Skipping interstitial ad.");
+                    return;
+                }
+
+                console.log("LIVE MODE: Attempting to show interstitial ad...");
+
+                // --- !! MONETAG INTERSTITIAL POINT !! ---
+                //
+                // This is where you will call your Monetag Interstitial Ad.
+                // Paste your ad code from Monetag here.
+				// In-App Interstitial
+
+show_10127270({
+  type: 'inApp',
+  inAppSettings: {
+    frequency: 2,
+    capping: 0.1,
+    interval: 30,
+    timeout: 5,
+    everyPage: false
+  }
+})
+
+/*
+This value is decoded as follows:
+- show automatically 2 ads
+  within 0.1 hours (6 minutes)
+  with a 30-second interval between them
+  and a 5-second delay before the first one is shown.
+  The last digit, 0, means that the session will be saved when you navigate between pages.
+  If you set the last digit as 1, then at any transition between pages,
+  the session will be reset, and the ads will start again.
+*/
+
+                //
+                // Example:
+                // monetag.showInterstitialAd({
+                //   onSuccess: () => console.log("Interstitial ad shown successfully!"),
+                //   onFailure: () => console.log("Interstitial ad failed to load.")
+                // });
+                //
+                // --- !! END OF MONETAG POINT !! ---
+            }
+
+            /**
              * Handles the "Watch Ad" task.
              */
             function handleMonetagTask() {
@@ -1364,7 +1421,7 @@
                 // Vibrate
                 tg.HapticFeedback.impactOccurred('light');
 
-                // --- !! MONETAG INTEGRATION POINT !! ---
+                // --- !! MONETAG REWARDED AD POINT !! ---
                 //
                 // This is where you will call your Monetag Rewarded Ad.
                 //
@@ -1389,12 +1446,12 @@
 
                 // For now, we'll just simulate a successful ad watch.
                 // ** DELETE THIS LINE when you add your real ad code: **
-				// Rewarded interstitial
+                // Rewarded interstitial
 
 show_10127270().then(() => {
     // You need to add your user reward function here, which will be executed after the user watches the ad.
     // For more details, please refer to the detailed instructions.
-    alert('Points earned for ad');
+    alert('You have earned a reward ad point');
 })
 
         
@@ -1410,7 +1467,7 @@ show_10127270().then(() => {
                 // Update the state
                 appState.adsWatchedToday += 1;
                 appState.points += TASK_POINTS['ad-task'];
-                
+
                 console.log("New state after ad watch:", appState); // Debug log
 
                 // Show success message
@@ -1671,6 +1728,4 @@ show_10127270().then(() => {
 </body>
 
 </html>
-
-
 
