@@ -19,6 +19,15 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
+    <!--
+      Monetag SDK (Placeholder)
+      This is where you will paste the SDK script from your Monetag dashboard
+      once your app is approved.
+    -->
+    <!-- !! PASTE YOUR MONETAG SDK SCRIPT HERE !! -->
+	<script src='//libtl.com/sdk.js' data-zone='10127270' data-sdk='show_10127270'></script>
+    <!-- e.g., <script src="https://monetag-sdk-url.com/..."></script> -->
+
 
     <!--
       App Styles
@@ -966,7 +975,6 @@
             async function main() {
                 try {
                     // --- 1. Initialize Telegram & User ---
-                    // This now runs first to ensure tgUser is available
                     let tgUser;
                     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                         tgUser = tg.initDataUnsafe.user;
@@ -1355,24 +1363,62 @@
                 // Vibrate
                 tg.HapticFeedback.impactOccurred('light');
 
-                // --- MONETAG INTEGRATION POINT ---
-                // This is where you would call your Monetag Rewarded Ad.
-                // For now, we'll just simulate a successful ad watch.
+                // --- !! MONETAG INTEGRATION POINT !! ---
+                //
+                // This is where you will call your Monetag Rewarded Ad.
+                //
+                // 1. Delete the `simulateSuccessfulAdWatch()` line below.
+                // 2. Paste your Monetag ad code here.
+                // 3. Make sure to call `onAdWatched()` from inside your
+                //    ad's "success" callback.
+                //
+                // Example:
+                // monetag.showRewardedAd({
+                //   onSuccess: () => {
+                //     console.log("Ad watched successfully!");
+                //     onAdWatched(); // <-- This is the important part
+                //   },
+                //   onFailure: () => {
+                //     console.log("Ad failed to load.");
+                //     showMessage("Ad Error", "Could not load ad. Please try again.");
+                //   }
+                // });
+                //
+                // --- !! END OF MONETAG POINT !! ---
 
-                // **!! REPLACE THIS with your Monetag code !!**
-                // Example: monetag.showRewardedAd().then(() => { ... });
-                simulateSuccessfulAdWatch();
+                // For now, we'll just simulate a successful ad watch.
+                // ** DELETE THIS LINE when you add your real ad code: **
+                
+// Rewarded interstitial
+
+show_10127270().then(() => {
+    // You need to add your user reward function here, which will be executed after the user watches the ad.
+    // For more details, please refer to the detailed instructions.
+    alert('ad reward point credited');
+})
+
+        
             }
 
             /**
-             * Simulates a successful ad watch (for Demo Mode or until Monetag is added).
+             * This function is called AFTER an ad is successfully watched.
+             * It gives the user their points and updates the UI.
              */
-            function simulateSuccessfulAdWatch() {
+            function onAdWatched() {
                 appState.adsWatchedToday += 1;
                 addPoints(TASK_POINTS['ad-task']);
                 showMessage("Ad Watched!", `You earned ${TASK_POINTS['ad-task']} $KKoin!`);
                 saveData();
                 updateUI();
+            }
+
+            /**
+             * Simulates a successful ad watch (for Demo Mode).
+             */
+            function simulateSuccessfulAdWatch() {
+                // This just calls the real reward function.
+                // This is what your Monetag `onSuccess` callback will do.
+                onAdWatched();
             }
 
             /**
