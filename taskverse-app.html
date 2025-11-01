@@ -8,47 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <!-- 
-      This script block checks for the live environment.
-      If it's not found, it enables "isDemoMode".
-    -->
-    <script>
-      // --- !! IMPORTANT !! ---
-      // User's Firebase Config
-      const firebaseConfig = {
-        apiKey: "AIzaSyBFwBCKF6Aqt5PaMiLf4JvnCXST-HI48zc",
-        authDomain: "kkoin-earner.firebaseapp.com",
-        projectId: "kkoin-earner",
-        storageBucket: "kkoin-earner.firebasestorage.app",
-        messagingSenderId: "856267442823",
-        appId: "1:856267442823:web:26218a03b440a0c7394622",
-        measurementId: "G-YNXS91ZCB1"
-      }; 
-      // ---------------------
-
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-      // Use the 'firebaseConfig' object defined above instead of the placeholder
-      const firebaseConfigFromEnv = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
-      const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-      // This is the Demo Mode switch:
-      let isDemoMode = false;
-      if (!firebaseConfigFromEnv) {
-          isDemoMode = true;
-          console.warn("--- DEMO MODE ACTIVATED ---");
-          console.warn("Firebase config not found. App will use localStorage for testing.");
-          console.warn("All data will be temporary and not saved to the cloud.");
-          console.warn("-----------------------------");
-      }
-    </script>
-
-    <!-- Firebase SDK Imports (will only be used if not in demo mode) -->
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
     
     <style>
         /* Define Telegram theme variables for dark mode */
@@ -140,6 +99,11 @@
             color: var(--tg-theme-link-color);
             transform: scale(1.1);
         }
+        .nav-button svg {
+            width: 28px;
+            height: 28px;
+            margin-bottom: 2px;
+        }
         
         /* Custom progress bar */
         .progress-bar-container {
@@ -190,40 +154,40 @@
             <h3 class="text-xl font-semibold">Get Started</h3>
         
             <!-- Task 1: Join Channel -->
-            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="150" data-task-id="task-1">
+            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="100" data-task-id="task-1">
                 <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48a16,16,0,0,0-16-16H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16Zm-33.43,26.57-80,64A8,8,0,0,0,112,144v8.34l-14.57-11.65a8,8,0,0,0-10.86,14.62l32,25.61A8,8,0,0,0,128,184a8,8,0,0,0,7.43-5.43l40-104A8,8,0,0,0,190.57,74.57Z"></path></svg>
                 </div>
                 <div class="flex-grow">
                     <p class="font-semibold">Join KKoin Earner Channel</p>
-                    <p class="text-sm font-bold link-color">+150 Points</p>
+                    <p class="text-sm font-bold link-color">+100 Points</p>
                 </div>
-                <button class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Claim</button>
+                <button class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Join</button>
             </div>
 
             <!-- Task 3: Follow on X (Twitter) -->
-            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="150" data-task-id="task-3">
+            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="100" data-task-id="task-3">
                 <div class="w-12 h-12 rounded-full bg-black flex items-center justify-center shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48a16,16,0,0,0-16-16H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16ZM178.22,94.31l33.34,33.34-44.1,44.1-33.34-33.34ZM167.31,83.4l15.25-15.25L198.4,84,182.56,99.8ZM88.69,172.6,73.44,187.85,57.6,172,73.44,156.14Zm89.57.86-33.34-33.34,44.1-44.1,33.34,33.34Z"></path></svg>
                 </div>
                 <div class="flex-grow">
                     <p class="font-semibold">Follow us on X</p>
-                    <p class="text-sm font-bold link-color">+150 Points</p>
+                    <p class="text-sm font-bold link-color">+100 Points</p>
                 </div>
-                <button class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Claim</button>
+                <button class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Follow</button>
             </div>
             
             <!-- Daily Tasks Section -->
             <h3 class="text-xl font-semibold pt-4">Daily Tasks</h3>
 
             <!-- Task 2: Monetag Ad Task -->
-            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="100" data-task-id="task-monetag">
+            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="50" data-task-id="task-monetag">
                 <div class="w-12 h-12 rounded-full bg-yellow-500 flex items-center justify-center shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32a16,16,0,0,0-16,16V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM112,160a16,16,0,1,1,16-16A16,16,0,0,1,112,160Zm0-32a16,16,0,1,1,16-16A16,16,0,0,1,112,128Zm32,32a16,16,0,1,1,16-16A16,16,0,0,1,144,160Z"></path></svg>
                 </div>
                 <div class="flex-grow">
                     <p class="font-semibold">Watch an Ad</p>
-                    <p class="text-sm font-bold link-color">+100 Points</p>
+                    <p class="text-sm font-bold link-color">+50 Points</p>
                 </div>
                 <button id="ad-task-btn" class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">
                     Watch (0/10)
@@ -238,7 +202,7 @@
                 </div>
                 <div class="flex-grow">
                     <p class="font-semibold">Invite a Friend</p>
-                    <p class="text-sm hint-text">Get 500 points + 5 ad slots!</p>
+                    <p class="text-sm hint-text">Get 250 points + 5 ad slots!</p>
                 </div>
                 <button id="invite-btn-home" class="button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Invite</button>
             </div>
@@ -257,7 +221,7 @@
                 </div>
                 <div>
                     <p class="text-sm hint-text">Bonus / Friend</p>
-                    <p id="referral-bonus-display" class="text-lg font-bold">500</p>
+                    <p id="referral-bonus-display" class="text-lg font-bold">250</p>
                 </div>
                 <div>
                     <p class="text-sm hint-text">Total Bonus</p>
@@ -269,11 +233,12 @@
             <div class="secondary-bg p-4 rounded-2xl text-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="mx-auto link-color" viewBox="0 0 256 256"><path d="M240,128a16,16,0,0,1-16,16H200v24a16,16,0,0,1-32,0V144H88v24a16,16,0,0,1-32,0V144H32a16,16,0,0,1,0-32H56V72a16,16,0,0,1,32,0V96h72V72a16,16,0,0,1,32,0V96h24a16,16,0,0,1,16,16ZM168,72a16,16,0,1,1-16,16A16,16,0,0,1,168,72Zm-80,0a16,16,0,1,1-16,16A16,16,0,0,1,88,72Zm80,112a16,16,0,1,1,16-16A16,16,0,0,1,168,184Zm-80,0a16,16,0,1,1,16-16A16,16,0,0,1,88,184Z"></path></svg>
                 <p class="text-2xl font-bold mt-2">Get +5 Ad Slots!</p>
-                <p class="hint-text mt-1">Each active friend you refer gives you 500 points + increases your daily ad limit by 5!</p>
+                <p class="hint-text mt-1">Each active friend you refer gives you 250 points + increases your daily ad limit by 5!</p>
                 <button id="copy-link-btn" class="w-full btn-primary font-semibold py-3 px-4 rounded-lg mt-4">
                     Copy Your Invite Link
                 </button>
-                <button id="simulate-referral-btn" class="w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg mt-3 text-sm">
+                <!-- This button is hidden by default and only shown in demo mode -->
+                <button id="simulate-referral-btn" class="w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg mt-3 text-sm" style="display: none;">
                     (Simulate 1 New Referral)
                 </button>
                 <p id="copy-success-msg" class="text-green-400 text-sm mt-2" style="display: none;">Copied to clipboard!</p>
@@ -332,17 +297,17 @@
         <div class="flex justify-around">
             <!-- Nav Button 1: Tasks -->
             <button id="nav-tasks" class="nav-button active flex flex-col items-center" data-page="tasks-page">
-                <i class="ph ph-list-tasks text-3xl"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32a16,16,0,0,0-16,16V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM112,160a16,16,0,1,1,16-16A16,16,0,0,1,112,160Zm0-32a16,16,0,1,1,16-16A16,16,0,0,1,112,128Zm32,32a16,16,0,1,1,16-16A16,16,0,0,1,144,160Z"></path></svg>
                 <span class="text-xs font-medium">Tasks</span>
             </button>
             <!-- Nav Button 2: Friends -->
             <button id="nav-friends" class="nav-button flex flex-col items-center" data-page="friends-page">
-                <i class="ph ph-users-three text-3xl"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 256 256"><path d="M234.38,118.94,143.6,28.16a15.9,15.9,0,0,0-23.2,0L30.62,118.94A16,16,0,0,0,42.22,144H64v64a16,16,0,0,0,16,16h80a16,16,0,0,0,16-16V144h21.78a16,16,0,0,0,11.6-25.06ZM160,208H96V128H74.22L128,74.06,181.78,128H160Z"></path></svg>
                 <span class="text-xs font-medium">Friends</span>
             </button>
             <!-- Nav Button 3: Wallet -->
             <button id="nav-wallet" class="nav-button flex flex-col items-center" data-page="wallet-page">
-                <i class="ph ph-wallet text-3xl"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM208,192H48V80H208Zm-48-80a24,24,0,1,1-24,24A24,24,0,0,1,160,112Z"></path></svg>
                 <span class="text-xs font-medium">Wallet</span>
             </button>
         </div>
@@ -350,76 +315,42 @@
 
     <!-- Main Application Logic -->
     <script type="module">
+        // --- CONFIGURATION & SETUP ---
+        
+        // --- !! USER-DEFINED FIREBASE CONFIG !! ---
+        // This is where you paste your Firebase config object.
+        // It's safe to have this here; security is handled by Firestore Rules.
+        // If this is 'null', the app will enter DEMO MODE.
+        const YOUR_FIREBASE_CONFIG = null; 
+        /* Example:
+        const YOUR_FIREBASE_CONFIG = {
+          apiKey: "AIza...",
+          authDomain: "myapp.firebaseapp.com",
+          projectId: "myapp-123",
+          storageBucket: "myapp.appspot.com",
+          messagingSenderId: "123456",
+          appId: "1:123456:web:abcd..."
+        };
+        */
+        // ------------------------------------------
+
         // --- Firebase SDK Imports ---
-        // We only import if we're NOT in demo mode
+        // These will be dynamically imported based on demo mode status.
         let initializeApp, getAuth, signInAnonymously, signInWithCustomToken, 
             getFirestore, doc, getDoc, setDoc, updateDoc, 
             collection, addDoc, serverTimestamp, runTransaction, setLogLevel;
 
-        if (!isDemoMode) {
-            try {
-                const firebaseApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-                const firebaseAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-                const firebaseFirestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-
-                initializeApp = firebaseApp.initializeApp;
-                getAuth = firebaseAuth.getAuth;
-                signInAnonymously = firebaseAuth.signInAnonymously;
-                signInWithCustomToken = firebaseAuth.signInWithCustomToken;
-                
-                getFirestore = firebaseFirestore.getFirestore;
-                doc = firebaseFirestore.doc;
-                getDoc = firebaseFirestore.getDoc;
-                setDoc = firebaseFirestore.setDoc;
-                updateDoc = firebaseFirestore.updateDoc;
-                collection = firebaseFirestore.collection;
-                addDoc = firebaseFirestore.addDoc;
-                serverTimestamp = firebaseFirestore.serverTimestamp;
-                runTransaction = firebaseFirestore.runTransaction;
-                setLogLevel = firebaseFirestore.setLogLevel;
-
-            } catch (e) {
-                console.error("Failed to load Firebase modules:", e);
-                isDemoMode = true; // Fallback to demo mode if imports fail
-                // We'll show the modal inside DOMContentLoaded, as the modal doesn't exist yet
-            }
-        }
-
-        // --- Initialize Telegram SDK ---
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand(); // Expand the app to full height
-        tg.setHeaderColor("var(--tg-theme-bg-color)");
-        tg.setBackgroundColor("var(--tg-theme-bg-color)");
-
-        // --- Firebase & App Config (from global vars) ---
-        // const appId, firebaseConfigFromEnv, initialAuthToken, isDemoMode are defined in <head>
-        
-        // Initialize Firebase
-        let app, auth, db;
-        if (!isDemoMode) {
-            try {
-                app = initializeApp(firebaseConfigFromEnv);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                setLogLevel('Debug'); // Enable Firestore logging
-            } catch (e) {
-                console.error("Firebase Init Error:", e);
-                isDemoMode = true; // Fallback to demo mode
-                // We'll show the modal inside DOMContentLoaded
-            }
-        }
-
         // --- App Constants ---
         const MIN_WITHDRAW_POINTS = 100000;
         const POINTS_TO_KOIN_RATE = 1000; // 1000 points = 1 $KKoin
-        const REFERRAL_POINT_BONUS = 500; // Bonus points per referral
+        const REFERRAL_POINT_BONUS = 250; // Bonus points per referral
         const BASE_AD_LIMIT = 10;
         const AD_LIMIT_PER_REFERRAL = 5;
         const LOCAL_STORAGE_KEY = 'kkoinEarnerDemoState'; // For demo mode
+        const TELEGRAM_CHANNEL_LINK = 'https://t.me/kkoinearner';
+        const X_ACCOUNT_LINK = 'https://x.com/kkoinearner';
 
         // --- App State ---
-        // This holds the user's data (loaded from Firestore OR localStorage)
         let appState = {
             userId: null, 
             firstName: 'User',
@@ -429,11 +360,18 @@
             lastAdWatchDate: null,
             adLimit: BASE_AD_LIMIT,
             referrals: 0,
-            processingWithdrawal: false
+            processingWithdrawal: false,
+            // New state for 2-step tasks
+            task1Clicked: false, // Tracks if 'Join' has been clicked
+            task3Clicked: false  // Tracks if 'Follow' has been clicked
         };
 
-        // --- DOM Elements ---
-        // We will define these inside DOMContentLoaded to ensure they exist
+        // --- Global Firebase & App Variables ---
+        let app, auth, db;
+        let isDemoMode = false;
+        let tg; // Telegram SDK
+        
+        // --- DOM Elements (will be assigned in main()) ---
         let pointsDisplay, koinBalanceDisplay, welcomeMessage,
             pages, navButtons, adTaskBtn, inviteBtnHome,
             copyLinkBtn, copySuccessMsg, simulateReferralBtn,
@@ -445,27 +383,19 @@
         // --- Utility Functions ---
         
         function showModal(title, message) {
-            // Ensure modal is defined
-            if (!modal) {
-                modal = document.getElementById('custom-modal');
-                modalTitle = document.getElementById('modal-title');
-                modalMessage = document.getElementById('modal-message');
-                modalOkBtn = document.getElementById('modal-ok-btn');
-                
-                if (modalOkBtn) { // Add listener only if it exists
-                    modalOkBtn.addEventListener('click', () => {
-                        modal.style.display = 'none';
-                    });
-                }
+            // Check if modal elements are ready
+            if (modalTitle && modalMessage && modal && modalOkBtn) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                modal.style.display = 'flex';
+            } else {
+                // Fallback if modal isn't ready
+                console.log(`MODAL: ${title} - ${message}`);
             }
-            // Ensure modal elements exist before setting text
-            if (modalTitle) modalTitle.textContent = title;
-            if (modalMessage) modalMessage.textContent = message;
-            if (modal) modal.style.display = 'flex';
         }
         
         function triggerHaptic(type = 'impact', style = 'medium') {
-            if (tg.HapticFeedback) {
+            if (tg && tg.HapticFeedback) {
                 if (type === 'impact') {
                     tg.HapticFeedback.impactOccurred(style);
                 } else if (type === 'notification') {
@@ -483,6 +413,8 @@
         // --- Core App Logic ---
 
         function updateUI() {
+            if (!pointsDisplay) return; // Exit if DOM not ready
+
             // Header
             pointsDisplay.textContent = formatPoints(appState.points);
             const koinBalance = appState.points / POINTS_TO_KOIN_RATE;
@@ -519,40 +451,45 @@
         }
 
         function updateTaskButtons() {
-            // Update one-time tasks
             const claimButtons = document.querySelectorAll('.claim-btn');
             claimButtons.forEach(button => {
                 const taskCard = button.closest('.task-card');
                 if (!taskCard) return; // safety check
                 
                 const taskId = taskCard.dataset.taskId;
-                if (taskId === 'task-monetag') return; // Skip ad task, it's handled separately
                 
+                // --- Standard "Done" logic ---
                 if (appState.claimedTasks.includes(taskId)) {
                     button.textContent = 'Done';
                     button.disabled = true;
                     button.classList.remove('btn-primary');
                     button.classList.add('btn-claimed');
-                } else {
-                    // Ensure buttons are reset if state is reloaded
-                    button.textContent = 'Claim';
-                    button.disabled = false;
-                    button.classList.add('btn-primary');
-                    button.classList.remove('btn-claimed');
+                    return; // Stop here, task is done
+                }
+
+                // --- Task-specific logic for non-claimed tasks ---
+                
+                // Reset button to base state
+                button.disabled = false;
+                button.classList.add('btn-primary');
+                button.classList.remove('btn-claimed');
+                
+                if (taskId === 'task-1') {
+                    // 2-Step Join Task
+                    button.textContent = appState.task1Clicked ? 'Claim' : 'Join';
+                } else if (taskId === 'task-3') {
+                    // 2-Step Follow Task
+                    button.textContent = appState.task3Clicked ? 'Claim' : 'Follow';
+                } else if (taskId === 'task-monetag') {
+                    // Ad Task
+                    const adsLeft = appState.adLimit - appState.adsWatchedToday;
+                    button.textContent = `Watch (${appState.adsWatchedToday}/${appState.adLimit})`;
+                    if (adsLeft <= 0) {
+                        button.textContent = 'Limit Reached';
+                        button.disabled = true;
+                    }
                 }
             });
-
-            // Update ad task button
-            const adsLeft = appState.adLimit - appState.adsWatchedToday;
-            if (adTaskBtn) { // Check if adTaskBtn exists
-                adTaskBtn.textContent = `Watch (${appState.adsWatchedToday}/${appState.adLimit})`;
-                if (adsLeft <= 0) {
-                    adTaskBtn.textContent = 'Limit Reached';
-                    adTaskBtn.disabled = true;
-                } else {
-                    adTaskBtn.disabled = false;
-                }
-            }
         }
         
         function switchPage(pageId) {
@@ -562,7 +499,9 @@
             });
 
             Object.values(navButtons).forEach(button => {
-                button.classList.toggle('active', button.dataset.page === pageId);
+                if (button) { // Safety check
+                    button.classList.toggle('active', button.dataset.page === pageId);
+                }
             });
         }
 
@@ -598,9 +537,71 @@
 
 
         // --- Firestore & Auth Logic (Only runs if NOT in demo mode) ---
+        async function initializeFirebase() {
+            // 1. Check for injected config first (live environment)
+            let firebaseConfig = YOUR_FIREBASE_CONFIG; // Use the one you pasted
+            
+            // Check for official environment-injected config (if it exists)
+            try {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    const envConfig = JSON.parse(__firebase_config);
+                    if (envConfig.apiKey) {
+                        firebaseConfig = envConfig;
+                    }
+                }
+            } catch (e) {}
+
+            // 2. Decide on Demo Mode
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                isDemoMode = true;
+                console.warn("--- DEMO MODE ACTIVATED ---");
+                console.warn("Firebase config is missing or invalid. App will use localStorage.");
+                return; // Stop initialization
+            }
+            
+            // 3. We are in LIVE MODE. Load Firebase modules.
+            try {
+                const firebaseApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+                const firebaseAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+                const firebaseFirestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+
+                initializeApp = firebaseApp.initializeApp;
+                getAuth = firebaseAuth.getAuth;
+                signInAnonymously = firebaseAuth.signInAnonymously;
+                signInWithCustomToken = firebaseAuth.signInWithCustomToken;
+                
+                getFirestore = firebaseFirestore.getFirestore;
+                doc = firebaseFirestore.doc;
+                getDoc = firebaseFirestore.getDoc;
+                setDoc = firebaseFirestore.setDoc;
+                updateDoc = firebaseFirestore.updateDoc;
+                collection = firebaseFirestore.collection;
+                addDoc = firebaseFirestore.addDoc;
+                serverTimestamp = firebaseFirestore.serverTimestamp;
+                runTransaction = firebaseFirestore.runTransaction;
+                setLogLevel = firebaseFirestore.setLogLevel;
+            } catch (e) {
+                console.error("Failed to load Firebase modules:", e);
+                isDemoMode = true; // Fallback to demo mode if imports fail
+                return;
+            }
+
+            // 4. Initialize Firebase App
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                setLogLevel('Debug'); // Enable Firestore logging
+            } catch (e) {
+                console.error("Firebase Init Error:", e);
+                isDemoMode = true; // Fallback to demo mode
+            }
+        }
 
         async function signInUser() {
+            // This function is only called if !isDemoMode
             try {
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
@@ -627,6 +628,7 @@
             if (!appState.userId) return;
 
             // Use the correct private path for user data
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
             
             try {
@@ -641,6 +643,8 @@
                     appState.claimedTasks = data.claimedTasks || [];
                     appState.referrals = data.referrals || 0;
                     appState.processingWithdrawal = data.processingWithdrawal || false;
+                    appState.task1Clicked = data.task1Clicked || false; // Load new state
+                    appState.task3Clicked = data.task3Clicked || false; // Load new state
 
                     // --- Check daily ad task ---
                     const today = new Date().toISOString().split('T')[0];
@@ -671,7 +675,9 @@
                         lastAdWatchDate: today,
                         createdAt: serverTimestamp(),
                         telegramFirstName: appState.firstName,
-                        processingWithdrawal: false
+                        processingWithdrawal: false,
+                        task1Clicked: false, // New state
+                        task3Clicked: false  // New state
                     };
                     await setDoc(userDocRef, newUser);
                     Object.assign(appState, newUser); // Merge new user data into state
@@ -702,7 +708,65 @@
                 return;
             }
             
-            // Standard one-time task
+            // Special case for Task 1 (Join Channel)
+            if (taskId === 'task-1') {
+                if (!appState.task1Clicked) {
+                    // --- This is the FIRST click ("Join") ---
+                    triggerHaptic('impact', 'light');
+                    tg.openTelegramLink(TELEGRAM_CHANNEL_LINK);
+                    
+                    // Update state and UI
+                    appState.task1Clicked = true;
+                    button.textContent = 'Claim';
+                    
+                    if (isDemoMode) {
+                        saveStateToLocalStorage();
+                    } else {
+                        // Save this click state to Firestore
+                        try {
+                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                            const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+                            await updateDoc(userDocRef, { task1Clicked: true });
+                        } catch (err) {
+                            console.error("Error saving task1Click:", err);
+                        }
+                    }
+                    return; // Stop here, wait for the 'Claim' click
+                }
+                // --- This is the SECOND click ("Claim") ---
+                // Proceed to the normal claim logic below
+            }
+            
+            // Special case for Task 3 (Follow on X)
+            if (taskId === 'task-3') {
+                if (!appState.task3Clicked) {
+                    // --- This is the FIRST click ("Follow") ---
+                    triggerHaptic('impact', 'light');
+                    tg.openLink(X_ACCOUNT_LINK);
+                    
+                    // Update state and UI
+                    appState.task3Clicked = true;
+                    button.textContent = 'Claim';
+                    
+                    if (isDemoMode) {
+                        saveStateToLocalStorage();
+                    } else {
+                        // Save this click state to Firestore
+                        try {
+                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                            const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+                            await updateDoc(userDocRef, { task3Clicked: true });
+                        } catch (err) {
+                            console.error("Error saving task3Click:", err);
+                        }
+                    }
+                    return; // Stop here, wait for the 'Claim' click
+                }
+                // --- This is the SECOND click ("Claim") ---
+                // Proceed to the normal claim logic below
+            }
+            
+            // --- Standard one-time task claim logic (for 'Claim' click on task-1 or task-3) ---
             if (appState.claimedTasks.includes(taskId)) return; // Already claimed
 
             triggerHaptic('notification', 'success');
@@ -718,6 +782,7 @@
             } else {
                 // --- LIVE MODE (Firestore) ---
                 try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
                     
                     // Use a transaction to safely update points and claimed tasks
@@ -756,13 +821,6 @@
                     showModal("Save Error", "Could not save task. Please try again.");
                     button.disabled = false; // Re-enable button on error
                 }
-            }
-            
-            // Open link for tasks that have one (both modes)
-            if (taskId === 'task-1') {
-                tg.openTelegramLink('https://t.me/your_channel_name');
-            } else if (taskId === 'task-3') {
-                tg.openLink('https://x.com/your_x_handle');
             }
         }
         
@@ -816,6 +874,7 @@
             } else {
                 // --- LIVE MODE (Firestore) ---
                 try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
 
                     // Use a transaction to safely update points and ad count
@@ -836,7 +895,7 @@
                         const serverReferrals = data.referrals || 0;
                         const serverAdLimit = BASE_AD_LIMIT + (serverReferrals * AD_LIMIT_PER_REFERRAL);
                         if (currentAdsWatched >= serverAdLimit) {
-                            throw "Ad limit reached!";
+                            throw new Error("Ad limit reached!"); // Use Error object
                         }
 
                         const newPoints = (data.points || 0) + reward;
@@ -873,6 +932,7 @@
 
         async function handleWithdraw() {
             const walletAddress = walletAddressInput.value;
+            const koinToWithdraw = MIN_WITHDRAW_POINTS / POINTS_TO_KOIN_RATE;
             
             // Basic TRC20 address validation
             if (walletAddress.length < 30 || !walletAddress.startsWith('T')) {
@@ -897,8 +957,6 @@
             withdrawBtn.disabled = true;
             withdrawBtn.textContent = 'Processing...';
 
-            const koinToWithdraw = MIN_WITHDRAW_POINTS / POINTS_TO_KOIN_RATE;
-
             if (isDemoMode) {
                 // --- DEMO MODE (localStorage) ---
                 appState.points -= MIN_WITHDRAW_POINTS;
@@ -918,6 +976,7 @@
             } else {
                 // --- LIVE MODE (Firestore) ---
                 try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
                     
                     // Use a transaction to create the request and deduct points
@@ -927,8 +986,8 @@
 
                         const data = userDoc.data();
                         const currentPoints = data.points || 0;
-                        if (currentPoints < MIN_WITHDRAW_POINTS) throw "Not enough points!";
-                        if (data.processingWithdrawal) throw "A withdrawal is already in progress.";
+                        if (currentPoints < MIN_WITHDRAW_POINTS) throw new Error("Not enough points!");
+                        if (data.processingWithdrawal) throw new Error("A withdrawal is already in progress.");
 
                         // 1. Create the withdrawal request in the PUBLIC collection
                         const withdrawalRef = collection(db, `artifacts/${appId}/public/data/withdrawalRequests`);
@@ -982,6 +1041,7 @@
             } else {
                 // --- LIVE MODE (Firestore) ---
                 try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
                     
                     // Use a transaction to safely update referrals and points
@@ -1017,9 +1077,10 @@
             }
         }
 
-        // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
-            
+        // --- Main App Initialization ---
+        // We must wait for the DOM to be ready AND the Telegram SDK to be ready.
+        
+        async function main() {
             // --- Define All DOM Elements ---
             pointsDisplay = document.getElementById('points-display');
             koinBalanceDisplay = document.getElementById('koin-balance-display');
@@ -1050,47 +1111,66 @@
             modalOkBtn = document.getElementById('modal-ok-btn');
             
             // --- This is the main startup logic ---
+            // This function runs *after* Firebase init is attempted.
+            
             if (isDemoMode) {
+                // Show the simulation button only in demo mode
+                if (simulateReferralBtn) {
+                    simulateReferralBtn.style.display = 'block';
+                }
+                
                 // Check if imports or init failed and show modal
                 if (!initializeApp) {
+                    // This means Firebase SDKs failed to import
                     showModal("Load Error", "Could not load cloud features. App is in offline mode.");
-                } else if (!app) {
-                     showModal("Fatal Error", "Could not initialize Firebase. App is in offline mode.");
+                } else if (!app && YOUR_FIREBASE_CONFIG) {
+                     // This means SDKs loaded, but init failed (bad config)
+                     showModal("Fatal Error", "Could not initialize Firebase (check config). App is in offline mode.");
+                } else if (!YOUR_FIREBASE_CONFIG) {
+                    // This is the normal, expected demo mode
+                    // showModal("Demo Mode", "This app is in demo mode. All data is temporary.");
                 }
                 
                 loadStateFromLocalStorage();
                 updateUI();
             } else {
+                // This is live mode
                 signInUser(); // This will load data from Firestore and then update UI
             }
 
+            // --- ALL EVENT LISTENERS ARE ATTACHED HERE ---
+
             // Page navigation
             Object.values(navButtons).forEach(button => {
-                button.addEventListener('click', () => {
-                    switchPage(button.dataset.page);
-                });
+                if (button) { // Safety check
+                    button.addEventListener('click', () => {
+                        switchPage(button.dataset.page);
+                    });
+                }
             });
 
             // Task claiming
-            // Use event delegation on the page itself
-            document.getElementById('tasks-page').addEventListener('click', (e) => {
-                const targetButton = e.target.closest('.claim-btn');
-                if (targetButton) {
-                    handleClaimTask(e);
-                }
-                
-                const inviteButton = e.target.closest('#invite-btn-home');
-                if (inviteButton) {
-                     switchPage('friends-page');
-                }
-            });
+            const tasksPage = document.getElementById('tasks-page');
+            if (tasksPage) {
+                tasksPage.addEventListener('click', (e) => {
+                    const targetButton = e.target.closest('.claim-btn');
+                    if (targetButton) {
+                        handleClaimTask(e);
+                    }
+                    
+                    const inviteButton = e.target.closest('#invite-btn-home');
+                    if (inviteButton) {
+                         switchPage('friends-page');
+                    }
+                });
+            }
 
             // Friends page
-            if (copyLinkBtn) { // Add safety check
+            if (copyLinkBtn) {
                 copyLinkBtn.addEventListener('click', () => {
                     triggerHaptic('impact', 'light');
                     // !! IMPORTANT: Replace with your bot's username
-                    const inviteLink = `https://t.me/KkoinEarnerBot?start=${appState.userId || 'demo'}`;
+                    const inviteLink = `https://t.me/YOUR_BOT_USERNAME_HERE?start=${appState.userId || 'demo'}`;
                     
                     // Use fallback for clipboard API
                     try {
@@ -1113,44 +1193,88 @@
                 });
             }
 
-            if (simulateReferralBtn) { // Add safety check
+            if (simulateReferralBtn) {
                 simulateReferralBtn.addEventListener('click', handleSimulateReferral);
             }
 
             // Wallet page
-            if (withdrawBtn) { // Add safety check
+            if (withdrawBtn) {
                 withdrawBtn.addEventListener('click', handleWithdraw);
             }
             
             // Modal OK button
-            if (modalOkBtn) { // Add safety check
+            if (modalOkBtn) {
                 modalOkBtn.addEventListener('click', () => {
                     modal.style.display = 'none';
                 });
             }
+        }
 
-            // Safety checks for all main element event listeners
-            document.addEventListener('DOMContentLoaded', () => {
-                // ... (all querySelectors) ...
-                
-                // Add null checks before adding listeners
-                Object.values(navButtons).forEach(button => {
-                    if (button) button.addEventListener('click', () => switchPage(button.dataset.page));
-                });
-
-                const tasksPage = document.getElementById('tasks-page');
-                if (tasksPage) tasksPage.addEventListener('click', (e) => { /* ... */ });
-                
-                if (copyLinkBtn) copyLinkBtn.addEventListener('click', () => { /* ... */ });
-                if (simulateReferralBtn) simulateReferralBtn.addEventListener('click', handleSimulateReferral);
-                if (withdrawBtn) withdrawBtn.addEventListener('click', handleWithdraw);
-                if (modalOkBtn) modalOkBtn.addEventListener('click', () => modal.style.display = 'none');
-            });
+        // --- STARTUP SEQUENCE ---
+        
+        // This ensures the DOM is ready before we do anything
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Initialize Telegram SDK
+            try {
+                tg = window.Telegram.WebApp;
+                if (tg && tg.ready) {
+                    tg.ready();
+                    tg.expand();
+                    tg.setHeaderColor("var(--tg-theme-bg-color)");
+                    tg.setBackgroundColor("var(--tg-theme-bg-color)");
+                } else {
+                    console.warn("Telegram SDK not found or 'ready' function missing!");
+                    // We can still run in demo mode in a normal browser
+                    // Create a fallback user object for browser testing
+                    if (!window.Telegram) {
+                        window.Telegram = {
+                            WebApp: {
+                                initDataUnsafe: {
+                                    user: { id: 12345, first_name: 'Browser' }
+                                },
+                                HapticFeedback: {
+                                    impactOccurred: () => {},
+                                    notificationOccurred: () => {},
+                                    selectionChanged: () => {},
+                                },
+                                openLink: (url) => window.open(url, '_blank'),
+                                openTelegramLink: (url) => window.open(url, '_blank'),
+                            }
+                        };
+                        tg = window.Telegram.WebApp;
+                    }
+                }
+            } catch (e) {
+                console.error("Error initializing Telegram SDK:", e);
+                // Create a fallback user object if SDK init fails
+                if (!window.Telegram) {
+                    window.Telegram = {
+                        WebApp: {
+                            initDataUnsafe: {
+                                user: { id: 12345, first_name: 'Browser' }
+                            },
+                            HapticFeedback: {
+                                impactOccurred: () => {},
+                                notificationOccurred: () => {},
+                                selectionChanged: () => {},
+                            },
+                            openLink: (url) => window.open(url, '_blank'),
+                            openTelegramLink: (url) => window.open(url, '_blank'),
+                        }
+                    };
+                    tg = window.Telegram.WebApp;
+                }
+            }
+            
+            // 2. Attempt to initialize Firebase (this will set isDemoMode)
+            await initializeFirebase();
+            
+            // 3. Run the main app logic
+            // (This will either load from localStorage or from Firestore)
+            main();
         });
 
     </script>
 </body>
 </html>
-
-
 
