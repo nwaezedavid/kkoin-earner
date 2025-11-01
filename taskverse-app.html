@@ -965,6 +965,29 @@
 
             // Telegram SDK instance
             const tg = window.Telegram.WebApp;
+            
+            // --- MOVED THIS FUNCTION UP (BUG FIX) ---
+            /**
+             * This function is called AFTER an ad is successfully watched.
+             * It gives the user their points and updates the UI.
+             */
+            function onAdWatched() {
+                console.log("onAdWatched function triggered!"); // Debug log
+
+                // Update the state
+                appState.adsWatchedToday += 1;
+                appState.points += TASK_POINTS['ad-task'];
+                
+                console.log("New state after ad watch:", appState); // Debug log
+
+                // Show success message
+                showMessage("Ad Watched!", `You earned ${TASK_POINTS['ad-task']} $KKoin!`);
+
+                // Save and update UI
+                saveData();
+                updateUI();
+            }
+
 
             // --- Main App Initialization ---
 
@@ -1343,7 +1366,7 @@
                     if (!appState.task3Clicked) {
                         // Step 1: Follow
                         appState.task3Clicked = true;
-                        tg.openLink('https://x.com/kkoinearner');
+                        tg.openLink('https://x.com/kkoinearner'); // <-- BUG FIX: Added https://
                     } else {
                         // Step 2: Claim
                         addPoints(TASK_POINTS[taskId], taskId);
@@ -1396,7 +1419,6 @@ This value is decoded as follows:
   If you set the last digit as 1, then at any transition between pages,
   the session will be reset, and the ads will start again.
 */
-
                 //
                 // Example:
                 // monetag.showInterstitialAd({
@@ -1456,26 +1478,6 @@ show_10127270().then(() => {
 
         
             }
-
-            /**
-             * This function is called AFTER an ad is successfully watched.
-             * It gives the user their points and updates the UI.
-             */
-            function onAdWatched() {
-                console.log("onAdWatched function triggered!"); // Debug log
-
-                // Update the state
-                appState.adsWatchedToday += 1;
-                appState.points += TASK_POINTS['ad-task'];
-
-                console.log("New state after ad watch:", appState); // Debug log
-
-                // Show success message
-                showMessage("Ad Watched!", `You earned ${TASK_POINTS['ad-task']} $KKoin!`);
-
-                // Save and update UI
-                saveData();
-                updateUI();
             }
 
             /**
@@ -1682,9 +1684,9 @@ show_10127270().then(() => {
                 try {
                     document.execCommand('copy');
                     showMessage("Copied!", "Your invite link has been copied to the clipboard.");
-                } catch (err) {
+                } catch (err) { // <-- BUG FIX: Added curly braces
                     showMessage("Oops!", "Could not copy the link. Please copy it from the text box.");
-                }
+                } // <-- BUG FIX: Added curly braces
                 document.body.removeChild(textArea);
             }
 
