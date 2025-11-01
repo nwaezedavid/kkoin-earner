@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>kkoin earner</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- 
+      This script block will be populated by the environment with Firebase config.
+      You don't need to add your own keys.
+    -->
+    <script>
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const firebaseConfigFromEnv = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+      const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+      if (!firebaseConfigFromEnv) {
+          console.error("Firebase config is not available.");
+          // Show an error to the user in the UI
+          document.addEventListener('DOMContentLoaded', () => {
+              document.body.innerHTML = `<div style="color: red; padding: 20px; text-align: center; font-family: sans-serif; background-color: #232e3c; color: white; min-height: 100vh;"><h1>Error</h1><p>Firebase configuration is missing.</p><p>This app cannot load.</p></div>`;
+          });
+      }
+    </script>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+    
+    <style>
+        /* Define Telegram theme variables for dark mode */
+        :root {
+            --tg-theme-bg-color: #18222d;
+            --tg-theme-text-color: #ffffff;
+            --tg-theme-hint-color: #b1c3d5;
+            --tg-theme-link-color: #62bcf9;
+            --tg-theme-button-color: #31a8f6;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-secondary-bg-color: #232e3c;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            -webkit-user-select: none; /* Disable text selection */
+            user-select: none;
+            -webkit-tap-highlight-color: transparent; /* Disable tap highlight */
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Use variables in Tailwind config */
+        .theme-bg { background-color: var(--tg-theme-bg-color); }
+        .theme-text { color: var(--tg-theme-text-color); }
+        .hint-text { color: var(--tg-theme-hint-color); }
+        .link-color { color: var(--tg-theme-link-color); }
+        .button-bg { background-color: var(--tg-theme-button-color); }
+        .button-text { color: var(--tg-theme-button-text-color); }
+        .secondary-bg { background-color: var(--tg-theme-secondary-bg-color); }
+
+        /* Custom button style for Telegram */
+        .btn-primary {
+            background-color: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            transition: opacity 0.2s ease;
+        }
+        .btn-primary:active {
+            opacity: 0.8;
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            background-color: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-hint-color);
+        }
+
+        /* Claimed button style */
+        .btn-claimed {
+            background-color: #34c759; /* Green for success */
+            color: white;
+            opacity: 1;
+        }
+
+        /* Page transitions */
+        .page {
+            display: none; /* Hide all pages by default */
+            animation: fadeIn 0.3s ease;
+        }
+        .page.active {
+            display: block; /* Show active page */
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Nav bar styles */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--tg-theme-secondary-bg-color);
+            border-top: 1px solid var(--tg-theme-bg-color);
+            padding: 8px 16px;
+            padding-bottom: max(8px, env(safe-area-inset-bottom)); /* For iPhone X notch */
+        }
+        .nav-button {
+            transition: color 0.2s ease, transform 0.2s ease;
+            color: var(--tg-theme-hint-color);
+        }
+        .nav-button.active {
+            color: var(--tg-theme-link-color);
+            transform: scale(1.1);
+        }
+        
+        /* Custom progress bar */
+        .progress-bar-container {
+            background-color: var(--tg-theme-secondary-bg-color);
+            border-radius: 9999px;
+            overflow: hidden;
+            height: 8px;
+        }
+        .progress-bar {
+            background-color: var(--tg-theme-link-color);
+            height: 100%;
+            transition: width 0.3s ease-out;
+        }
+        
+        /* Custom input */
+        .input-field {
+            background-color: var(--tg-theme-secondary-bg-color);
+            border: 1px solid var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+        }
+        .input-field::placeholder {
+            color: var(--tg-theme-hint-color);
+        }
+    </style>
+</head>
+<body class="theme-bg theme-text">
+
+    <!-- Header (Stays on all pages) -->
+    <header class="w-full max-w-md mx-auto text-center py-4">
+        <p class="hint-text text-sm" id="welcome-message">Welcome, User!</p>
+        <div class="flex items-center justify-center space-x-2 mt-2">
+            <img src="https://placehold.co/32x32/ffD700/000000?text=K" alt="KKoin" class="w-8 h-8 rounded-full">
+            <h1 class="text-4xl font-bold" id="points-display">0</h1>
+        </div>
+        <p class="hint-text" id="koin-balance-display">≈ 0 $KKoin</p>
+    </header>
+
+    <!-- Page Container (Swappable Content) -->
+    <main id="page-container" class="w-full max-w-md mx-auto flex-grow" style="padding-bottom: 80px;">
+    
+        <!-- Page 1: Tasks (Default) -->
+        <section id="tasks-page" class="page active space-y-3">
+            
+            <!-- Get Started Section -->
+            <h3 class="text-xl font-semibold">Get Started</h3>
+        
+            <!-- Task 1: Join Channel -->
+            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="150" data-task-id="task-1">
+                <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48a16,16,0,0,0-16-16H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16Zm-33.43,26.57-80,64A8,8,0,0,0,112,144v8.34l-14.57-11.65a8,8,0,0,0-10.86,14.62l32,25.61A8,8,0,0,0,128,184a8,8,0,0,0,7.43-5.43l40-104A8,8,0,0,0,190.57,74.57Z"></path></svg>
+                </div>
+                <div class="flex-grow">
+                    <p class="font-semibold">Join KKoin Earner Channel</p>
+                    <p class="text-sm font-bold link-color">+150 Points</p>
+                </div>
+                <button class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Claim</button>
+            </div>
+
+            <!-- Task 3: Follow on X (Twitter) -->
+            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="150" data-task-id="task-3">
+                <div class="w-12 h-12 rounded-full bg-black flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48a16,16,0,0,0-16-16H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16ZM178.22,94.31l33.34,33.34-44.1,44.1-33.34-33.34ZM167.31,83.4l15.25-15.25L198.4,84,182.56,99.8ZM88.69,172.6,73.44,187.85,57.6,172,73.44,156.14Zm89.57.86-33.34-33.34,44.1-44.1,33.34,33.34Z"></path></svg>
+                </div>
+                <div class="flex-grow">
+                    <p class="font-semibold">Follow us on X</p>
+                    <p class="text-sm font-bold link-color">+150 Points</p>
+                </div>
+                <button class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Claim</button>
+            </div>
+            
+            <!-- Daily Tasks Section -->
+            <h3 class="text-xl font-semibold pt-4">Daily Tasks</h3>
+
+            <!-- Task 2: Monetag Ad Task -->
+            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="100" data-task-id="task-monetag">
+                <div class="w-12 h-12 rounded-full bg-yellow-500 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32a16,16,0,0,0-16,16V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM112,160a16,16,0,1,1,16-16A16,16,0,0,1,112,160Zm0-32a16,16,0,1,1,16-16A16,16,0,0,1,112,128Zm32,32a16,16,0,1,1,16-16A16,16,0,0,1,144,160Z"></path></svg>
+                </div>
+                <div class="flex-grow">
+                    <p class="font-semibold">Watch an Ad</p>
+                    <p class="text-sm font-bold link-color">+100 Points</p>
+                </div>
+                <button id="ad-task-btn" class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">
+                    Watch (0/10)
+                </button>
+            </div>
+
+            <!-- Grow Your Team Section -->
+            <h3 class="text-xl font-semibold pt-4">Grow Your Team</h3>
+            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3">
+                <div class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M234.38,118.94,143.6,28.16a15.9,15.9,0,0,0-23.2,0L30.62,118.94A16,16,0,0,0,42.22,144H64v64a16,16,0,0,0,16,16h80a16,16,0,0,0,16-16V144h21.78a16,16,0,0,0,11.6-25.06ZM160,208H96V128H74.22L128,74.06,181.78,128H160Z"></path></svg>
+                </div>
+                <div class="flex-grow">
+                    <p class="font-semibold">Invite a Friend</p>
+                    <p class="text-sm hint-text">Get 500 points + 5 ad slots!</p>
+                </div>
+                <button id="invite-btn-home" class="button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Invite</button>
+            </div>
+
+        </section>
+
+        <!-- Page 2: Friends -->
+        <section id="friends-page" class="page space-y-4">
+            <h3 class="text-xl font-semibold">Invite Friends, Earn More</h3>
+
+            <!-- New Stats Box -->
+            <div class="secondary-bg p-4 rounded-2xl grid grid-cols-3 gap-2 text-center">
+                <div>
+                    <p class="text-sm hint-text">Total Friends</p>
+                    <p id="total-referrals-display" class="text-lg font-bold">0</p>
+                </div>
+                <div>
+                    <p class="text-sm hint-text">Bonus / Friend</p>
+                    <p id="referral-bonus-display" class="text-lg font-bold">500</p>
+                </div>
+                <div>
+                    <p class="text-sm hint-text">Total Bonus</p>
+                    <p id="total-referral-points-display" class="text-lg font-bold">0</p>
+                </div>
+            </div>
+
+            <!-- Existing Invite Box -->
+            <div class="secondary-bg p-4 rounded-2xl text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="mx-auto link-color" viewBox="0 0 256 256"><path d="M240,128a16,16,0,0,1-16,16H200v24a16,16,0,0,1-32,0V144H88v24a16,16,0,0,1-32,0V144H32a16,16,0,0,1,0-32H56V72a16,16,0,0,1,32,0V96h72V72a16,16,0,0,1,32,0V96h24a16,16,0,0,1,16,16ZM168,72a16,16,0,1,1-16,16A16,16,0,0,1,168,72Zm-80,0a16,16,0,1,1-16,16A16,16,0,0,1,88,72Zm80,112a16,16,0,1,1,16-16A16,16,0,0,1,168,184Zm-80,0a16,16,0,1,1,16-16A16,16,0,0,1,88,184Z"></path></svg>
+                <p class="text-2xl font-bold mt-2">Get +5 Ad Slots!</p>
+                <p class="hint-text mt-1">Each active friend you refer gives you 500 points + increases your daily ad limit by 5!</p>
+                <button id="copy-link-btn" class="w-full btn-primary font-semibold py-3 px-4 rounded-lg mt-4">
+                    Copy Your Invite Link
+                </button>
+                <button id="simulate-referral-btn" class="w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg mt-3 text-sm">
+                    (Simulate 1 New Referral)
+                </button>
+                <p id="copy-success-msg" class="text-green-400 text-sm mt-2" style="display: none;">Copied to clipboard!</p>
+            </div>
+        </section>
+
+        <!-- Page 3: Wallet -->
+        <section id="wallet-page" class="page space-y-4">
+            <h3 class="text-xl font-semibold">Withdrawal</h3>
+            
+            <!-- Conversion Box -->
+            <div class="secondary-bg p-4 rounded-2xl text-center">
+                <p class="hint-text">Your Balance</p>
+                <p class="text-3xl font-bold" id="wallet-points-display">0</p>
+                <p class="text-lg font-semibold link-color" id="wallet-koin-display">≈ 0 $KKoin</p>
+            </div>
+
+            <!-- Withdrawal Goal -->
+            <div class="secondary-bg p-4 rounded-2xl">
+                <p class="font-semibold">Minimum Withdrawal</p>
+                <p class="hint-text text-sm">100,000 Points = 100 $KKoin (≈ $1)</p>
+                <div class="progress-bar-container mt-2">
+                    <div id="progress-bar" class="progress-bar" style="width: 0%;"></div>
+                </div>
+                <p class="hint-text text-xs text-right mt-1" id="progress-text">0 / 100,000</p>
+            </div>
+
+            <!-- Wallet Input -->
+            <div class="space-y-2">
+                <label for="wallet-address" class="font-semibold">Your TRC20 Wallet Address</label>
+                <input type="text" id="wallet-address" class="input-field" placeholder="T...">
+            </div>
+
+            <!-- Withdraw Button -->
+            <button id="withdraw-btn" class="w-full btn-primary font-semibold py-3 px-4 rounded-lg" disabled>
+                Withdraw (Not enough points)
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Custom Modal for Alerts -->
+    <div id="custom-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="secondary-bg p-6 rounded-2xl shadow-lg w-10/12 max-w-sm">
+            <h3 id="modal-title" class="text-lg font-semibold mb-2">Notice</h3>
+            <p id="modal-message" class="hint-text mb-4">This is a message.</p>
+            <button id="modal-ok-btn" class="w-full btn-primary font-semibold py-2 px-4 rounded-lg">
+                OK
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="nav-bar w-full max-w-md mx-auto">
+        <div class="flex justify-around">
+            <!-- Nav Button 1: Tasks -->
+            <button id="nav-tasks" class="nav-button active flex flex-col items-center" data-page="tasks-page">
+                <i class="ph ph-list-tasks text-3xl"></i>
+                <span class="text-xs font-medium">Tasks</span>
+            </button>
+            <!-- Nav Button 2: Friends -->
+            <button id="nav-friends" class="nav-button flex flex-col items-center" data-page="friends-page">
+                <i class="ph ph-users-three text-3xl"></i>
+                <span class="text-xs font-medium">Friends</span>
+            </button>
+            <!-- Nav Button 3: Wallet -->
+            <button id="nav-wallet" class="nav-button flex flex-col items-center" data-page="wallet-page">
+                <i class="ph ph-wallet text-3xl"></i>
+                <span class="text-xs font-medium">Wallet</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Application Logic -->
+    <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, doc, getDoc, setDoc, updateDoc, 
+            collection, addDoc, serverTimestamp, runTransaction,
+            setLogLevel
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Initialize Telegram SDK ---
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand(); // Expand the app to full height
+        tg.setHeaderColor("var(--tg-theme-bg-color)");
+        tg.setBackgroundColor("var(--tg-theme-bg-color)");
+
+        // --- Firebase & App Config (from global vars) ---
+        // const appId, firebaseConfigFromEnv, initialAuthToken are defined in <head>
+        if (!firebaseConfigFromEnv) {
+            // Error is already handled in the <head> by stopping app load
+            throw new Error("Firebase config is not available.");
+        }
+
+        // Initialize Firebase
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfigFromEnv);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            setLogLevel('Debug'); // Enable Firestore logging
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            showModal("Fatal Error", "Could not initialize Firebase. Please try again later.");
+        }
+
+        // --- App Constants ---
+        const MIN_WITHDRAW_POINTS = 100000;
+        const POINTS_TO_KOIN_RATE = 1000; // 1000 points = 1 $KKoin
+        const REFERRAL_POINT_BONUS = 500; // Bonus points per referral
+        const BASE_AD_LIMIT = 10;
+        const AD_LIMIT_PER_REFERRAL = 5;
+
+        // --- App State ---
+        // This holds the user's data *after* it's loaded from Firestore
+        let appState = {
+            userId: null, // Will be set after auth
+            firstName: 'User',
+            points: 0,
+            claimedTasks: [],
+            adsWatchedToday: 0,
+            lastAdWatchDate: null,
+            adLimit: BASE_AD_LIMIT,
+            referrals: 0,
+            processingWithdrawal: false // Is a withdrawal in progress?
+        };
+
+        // --- DOM Elements ---
+        const pointsDisplay = document.getElementById('points-display');
+        const koinBalanceDisplay = document.getElementById('koin-balance-display');
+        const welcomeMessage = document.getElementById('welcome-message');
+        
+        // Page Elements
+        const pages = document.querySelectorAll('.page');
+        const navButtons = {
+            tasks: document.getElementById('nav-tasks'),
+            friends: document.getElementById('nav-friends'),
+            wallet: document.getElementById('nav-wallet')
+        };
+        
+        // Task Page
+        const adTaskBtn = document.getElementById('ad-task-btn');
+        const inviteBtnHome = document.getElementById('invite-btn-home');
+
+        // Friends Page
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        const copySuccessMsg = document.getElementById('copy-success-msg');
+        const simulateReferralBtn = document.getElementById('simulate-referral-btn');
+        const totalReferralsDisplay = document.getElementById('total-referrals-display');
+        const referralBonusDisplay = document.getElementById('referral-bonus-display');
+        const totalReferralPointsDisplay = document.getElementById('total-referral-points-display');
+        
+        // Wallet Page
+        const walletPointsDisplay = document.getElementById('wallet-points-display');
+        const walletKoinDisplay = document.getElementById('wallet-koin-display');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const walletAddressInput = document.getElementById('wallet-address');
+        const withdrawBtn = document.getElementById('withdraw-btn');
+
+        // Modal Elements
+        const modal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalOkBtn = document.getElementById('modal-ok-btn');
+        
+        // --- Utility Functions ---
+        
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modal.style.display = 'flex';
+        }
+
+        modalOkBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        function triggerHaptic(type = 'impact', style = 'medium') {
+            if (tg.HapticFeedback) {
+                if (type === 'impact') {
+                    tg.HapticFeedback.impactOccurred(style);
+                } else if (type === 'notification') {
+                    tg.HapticFeedback.notificationOccurred(style);
+                } else if (type === 'selection') {
+                    tg.HapticFeedback.selectionChanged();
+                }
+            }
+        }
+
+        function formatPoints(points) {
+            return new Intl.NumberFormat().format(points);
+        }
+
+        // --- Core App Logic ---
+
+        function updateUI() {
+            // Header
+            pointsDisplay.textContent = formatPoints(appState.points);
+            const koinBalance = appState.points / POINTS_TO_KOIN_RATE;
+            koinBalanceDisplay.textContent = `≈ ${formatPoints(koinBalance.toFixed(0))} $KKoin`;
+            welcomeMessage.textContent = `Welcome, ${appState.firstName}!`;
+
+            // Tasks Page
+            updateTaskButtons();
+            
+            // Friends Page
+            const totalReferralPoints = appState.referrals * REFERRAL_POINT_BONUS;
+            totalReferralsDisplay.textContent = appState.referrals;
+            referralBonusDisplay.textContent = `${REFERRAL_POINT_BONUS}`;
+            totalReferralPointsDisplay.textContent = formatPoints(totalReferralPoints);
+
+            // Wallet Page
+            walletPointsDisplay.textContent = formatPoints(appState.points);
+            walletKoinDisplay.textContent = `≈ ${formatPoints(koinBalance.toFixed(0))} $KKoin`;
+            
+            const progressPercent = Math.min((appState.points / MIN_WITHDRAW_POINTS) * 100, 100);
+            progressBar.style.width = `${progressPercent}%`;
+            progressText.textContent = `${formatPoints(appState.points)} / ${formatPoints(MIN_WITHDRAW_POINTS)}`;
+
+            if (appState.processingWithdrawal) {
+                withdrawBtn.disabled = true;
+                withdrawBtn.textContent = 'Processing Withdrawal...';
+            } else if (appState.points >= MIN_WITHDRAW_POINTS) {
+                withdrawBtn.disabled = false;
+                withdrawBtn.textContent = 'Withdraw';
+            } else {
+                withdrawBtn.disabled = true;
+                withdrawBtn.textContent = 'Not enough points';
+            }
+        }
+
+        function updateTaskButtons() {
+            // Update one-time tasks
+            const claimButtons = document.querySelectorAll('.claim-btn');
+            claimButtons.forEach(button => {
+                const taskCard = button.closest('.task-card');
+                if (!taskCard) return; // safety check
+                
+                const taskId = taskCard.dataset.taskId;
+                if (taskId === 'task-monetag') return; // Skip ad task, it's handled separately
+                
+                if (appState.claimedTasks.includes(taskId)) {
+                    button.textContent = 'Done';
+                    button.disabled = true;
+                    button.classList.remove('btn-primary');
+                    button.classList.add('btn-claimed');
+                }
+            });
+
+            // Update ad task button
+            const adsLeft = appState.adLimit - appState.adsWatchedToday;
+            adTaskBtn.textContent = `Watch (${appState.adsWatchedToday}/${appState.adLimit})`;
+            if (adsLeft <= 0) {
+                adTaskBtn.textContent = 'Limit Reached';
+                adTaskBtn.disabled = true;
+            } else {
+                adTaskBtn.disabled = false;
+            }
+        }
+        
+        function switchPage(pageId) {
+            triggerHaptic('selection');
+            pages.forEach(page => {
+                page.classList.toggle('active', page.id === pageId);
+            });
+
+            Object.values(navButtons).forEach(button => {
+                button.classList.toggle('active', button.dataset.page === pageId);
+            });
+        }
+
+        // --- Firestore & Auth Logic ---
+
+        async function signInUser() {
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                const user = auth.currentUser;
+                if (user) {
+                    // Use Telegram user ID if available, otherwise use Firebase anonymous UID
+                    appState.userId = tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : user.uid;
+                    appState.firstName = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'User';
+                    console.log("User signed in with ID:", appState.userId);
+                    await loadDataFromFirestore();
+                } else {
+                    throw new Error("No user signed in.");
+                }
+            } catch (error) {
+                console.error("Firebase Auth Error:", error);
+                showModal("Auth Error", "Could not sign in. Please refresh.");
+            }
+        }
+
+        async function loadDataFromFirestore() {
+            if (!appState.userId) return;
+
+            // Use the correct private path for user data
+            const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+            
+            try {
+                const docSnap = await getDoc(userDocRef);
+
+                if (docSnap.exists()) {
+                    // --- Load existing user data ---
+                    const data = docSnap.data();
+                    console.log("Loaded data:", data);
+                    
+                    appState.points = data.points || 0;
+                    appState.claimedTasks = data.claimedTasks || [];
+                    appState.referrals = data.referrals || 0;
+                    appState.processingWithdrawal = data.processingWithdrawal || false;
+
+                    // --- Check daily ad task ---
+                    const today = new Date().toISOString().split('T')[0];
+                    const lastAdDate = data.lastAdWatchDate;
+                    
+                    if (lastAdDate === today) {
+                        appState.adsWatchedToday = data.adsWatchedToday || 0;
+                    } else {
+                        // It's a new day, reset daily count in Firestore
+                        appState.adsWatchedToday = 0;
+                        await updateDoc(userDocRef, {
+                            adsWatchedToday: 0,
+                            lastAdWatchDate: today
+                        });
+                    }
+                    appState.lastAdWatchDate = today;
+                    appState.adLimit = BASE_AD_LIMIT + (appState.referrals * AD_LIMIT_PER_REFERRAL);
+
+                } else {
+                    // --- Create new user document ---
+                    console.log("New user, creating document...");
+                    const today = new Date().toISOString().split('T')[0];
+                    const newUser = {
+                        points: 0,
+                        claimedTasks: [],
+                        referrals: 0,
+                        adsWatchedToday: 0,
+                        lastAdWatchDate: today,
+                        createdAt: serverTimestamp(),
+                        telegramFirstName: appState.firstName,
+                        processingWithdrawal: false
+                    };
+                    await setDoc(userDocRef, newUser);
+                    appState = { ...appState, ...newUser };
+                    appState.adLimit = BASE_AD_LIMIT; // Already set
+                }
+
+                updateUI(); // Update UI with loaded data
+                
+            } catch (error) {
+                console.error("Firestore Load Error:", error);
+                showModal("Load Error", "Could not load your data. Please try again.");
+            }
+        }
+
+        async function handleClaimTask(e) {
+            const button = e.target.closest('.claim-btn');
+            if (!button || button.disabled) return;
+
+            const taskCard = button.closest('.task-card');
+            if (!taskCard) return; // safety check
+            
+            const taskId = taskCard.dataset.taskId;
+            const reward = parseInt(taskCard.dataset.reward, 10);
+
+            // Special case for Monetag Ad Task
+            if (taskId === 'task-monetag') {
+                await handleMonetagTask(button, reward);
+                return;
+            }
+
+            // Standard one-time task
+            if (!appState.claimedTasks.includes(taskId)) {
+                triggerHaptic('notification', 'success');
+                button.disabled = true; // Disable immediately
+                
+                try {
+                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+                    
+                    // Use a transaction to safely update points and claimed tasks
+                    await runTransaction(db, async (transaction) => {
+                        const userDoc = await transaction.get(userDocRef);
+                        if (!userDoc.exists()) {
+                            throw "Document does not exist!";
+                        }
+                        
+                        const currentPoints = userDoc.data().points || 0;
+                        const newPoints = currentPoints + reward;
+                        const newClaimedTasks = [...userDoc.data().claimedTasks || [], taskId];
+
+                        transaction.update(userDocRef, { 
+                            points: newPoints,
+                            claimedTasks: newClaimedTasks
+                        });
+
+                        // Update local state *after* transaction is ready to commit
+                        appState.points = newPoints;
+                        appState.claimedTasks = newClaimedTasks;
+                    });
+                    
+                    console.log("One-time task claimed and saved.");
+                    updateUI(); // Update UI after successful save
+
+                    // Open link for tasks that have one
+                    if (taskId === 'task-1') {
+                        tg.openTelegramLink('https://t.me/your_channel_name');
+                    } else if (taskId === 'task-3') {
+                        tg.openLink('https://x.com/your_x_handle');
+                    }
+                    
+                } catch (error) {
+                    console.error("One-time Task Save Error:", error);
+                    showModal("Save Error", "Could not save task. Please try again.");
+                    button.disabled = false; // Re-enable button on error
+                }
+            }
+        }
+        
+        async function handleMonetagTask(button, reward) {
+            // Check limit (local state is already up-to-date)
+            if (appState.adsWatchedToday < appState.adLimit) {
+                triggerHaptic('impact', 'light');
+                button.disabled = true; // Disable button
+                
+                // --- !!! MONETAG INTEGRATION POINT !!! ---
+                // 1. Paste your Monetag SDK <script> tag in the <head>
+                // 2. Call your Monetag Rewarded Ad function here.
+                
+                // Example:
+                // monetag.showRewardedAd().then(async (response) => {
+                //    if (response.success) {
+                //        console.log("Ad watched successfully!");
+                //        await saveAdTaskReward(reward);
+                //    } else {
+                //        console.log("Ad failed to show or was skipped.");
+                //        showModal("Ad Not Completed", "You must watch the full ad to get the reward.");
+                //        button.disabled = false; // Re-enable on failure
+                //    }
+                // });
+                
+                // --- START SIMULATION (Remove this in production) ---
+                console.log("Simulating ad watch...");
+                showModal("Ad Watched (Simulation)", `You earned ${reward} points!`);
+                await saveAdTaskReward(reward); // Simulate a successful watch
+                // --- END SIMULATION ---
+                
+            } else {
+                showModal("Daily Limit", "You have reached your daily ad limit. Invite more friends to increase it!");
+                triggerHaptic('notification', 'error');
+            }
+        }
+        
+        async function saveAdTaskReward(reward) {
+            try {
+                const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+
+                // Use a transaction to safely update points and ad count
+                await runTransaction(db, async (transaction) => {
+                    const userDoc = await transaction.get(userDocRef);
+                    if (!userDoc.exists()) {
+                        throw "Document does not exist!";
+                    }
+
+                    const today = new Date().toISOString().split('T')[0];
+                    let currentAdsWatched = userDoc.data().adsWatchedToday || 0;
+                    
+                    // Double-check date in transaction
+                    if (userDoc.data().lastAdWatchDate !== today) {
+                        currentAdsWatched = 0;
+                    }
+                    
+                    if (currentAdsWatched >= appState.adLimit) {
+                        throw "Ad limit reached!"; // Server-side check
+                    }
+
+                    const newPoints = (userDoc.data().points || 0) + reward;
+                    const newAdsWatched = currentAdsWatched + 1;
+
+                    transaction.update(userDocRef, {
+                        points: newPoints,
+                        adsWatchedToday: newAdsWatched,
+                        lastAdWatchDate: today
+                    });
+
+                    // Update local state
+                    appState.points = newPoints;
+                    appState.adsWatchedToday = newAdsWatched;
+                    appState.lastAdWatchDate = today;
+                });
+                
+                console.log("Ad task reward saved.");
+                triggerHaptic('notification', 'success');
+                updateUI(); // Update UI after successful save
+
+            } catch (error) {
+                console.error("Ad Task Save Error:", error);
+                if (error === "Ad limit reached!") {
+                    showModal("Daily Limit", "You have reached your daily ad limit.");
+                } else {
+                    showModal("Save Error", "Could not save ad reward. Please try again.");
+                }
+                updateUI(); // Re-sync UI in case of error
+            }
+        }
+
+        async function handleWithdraw() {
+            const walletAddress = walletAddressInput.value;
+            
+            // Basic TRC20 address validation
+            if (walletAddress.length < 30 || !walletAddress.startsWith('T')) {
+                triggerHaptic('notification', 'error');
+                showModal("Invalid Address", "Please enter a valid TRC20 wallet address (it should start with 'T').");
+                return;
+            }
+
+            if (appState.points >= MIN_WITHDRAW_POINTS && !appState.processingWithdrawal) {
+                triggerHaptic('notification', 'success');
+                withdrawBtn.disabled = true;
+                withdrawBtn.textContent = 'Processing...';
+
+                try {
+                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+                    const koinToWithdraw = MIN_WITHDRAW_POINTS / POINTS_TO_KOIN_RATE;
+
+                    // Use a transaction to create the request and deduct points
+                    await runTransaction(db, async (transaction) => {
+                        const userDoc = await transaction.get(userDocRef);
+                        if (!userDoc.exists()) {
+                            throw "Document does not exist!";
+                        }
+
+                        const currentPoints = userDoc.data().points || 0;
+                        if (currentPoints < MIN_WITHDRAW_POINTS) {
+                            throw "Not enough points!";
+                        }
+                        if (userDoc.data().processingWithdrawal) {
+                            throw "A withdrawal is already in progress.";
+                        }
+
+                        // 1. Create the withdrawal request in the PUBLIC collection
+                        // This path is wrong in the user's provided file. It should be /public/data/collection
+                        const withdrawalRef = collection(db, `artifacts/${appId}/public/data/withdrawalRequests`);
+                        await addDoc(withdrawalRef, {
+                            userId: appState.userId,
+                            telegramFirstName: appState.firstName,
+                            pointsToWithdraw: MIN_WITHDRAW_POINTS, // Fixed a typo here from the user's file
+                            koinToWithdraw: koinToWithdraw,
+                            walletAddress: walletAddress,
+                            status: "pending",
+                            requestedAt: serverTimestamp()
+                        });
+
+                        // 2. Update the user's private document
+                        const newPoints = currentPoints - MIN_WITHDRAW_POINTS;
+                        transaction.update(userDocRef, {
+                            points: newPoints,
+                            processingWithdrawal: true // Lock user from making another request
+                        });
+
+                        // 3. Update local state
+                        appState.points = newPoints;
+                        appState.processingWithdrawal = true;
+                    });
+                    
+                    console.log("Withdrawal request saved.");
+                    updateUI();
+                    walletAddressInput.value = '';
+                    showModal("Withdrawal Requested!", `Your request to withdraw ${koinToWithdraw} $KKoin has been submitted. It will be processed soon.`);
+                    
+                } catch (error) {
+                    console.error("Withdrawal Error:", error);
+                    showModal("Withdrawal Error", `An error occurred: ${error}`);
+                    updateUI(); // Re-sync UI
+                }
+            }
+        }
+
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            if (!firebaseConfigFromEnv) {
+                return; // Stop execution if Firebase is not configured
+            }
+            
+            signInUser(); // This will now load data and then update UI
+
+            // Page navigation
+            Object.values(navButtons).forEach(button => {
+                button.addEventListener('click', () => {
+                    switchPage(button.dataset.page);
+                });
+            });
+
+            // Task claiming
+            document.getElementById('tasks-page').addEventListener('click', handleClaimTask);
+
+            // Invite button on Home Page
+            inviteBtnHome.addEventListener('click', () => {
+                switchPage('friends-page');
+            });
+
+            // Friends page
+            copyLinkBtn.addEventListener('click', () => {
+                triggerHaptic('impact', 'light');
+                // !! IMPORTANT: Replace with your bot's username
+                const inviteLink = `https://t.me/YOUR_BOT_USERNAME_HERE?start=${appState.userId}`;
+                
+                // Use fallback for clipboard API
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = inviteLink;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    copySuccessMsg.style.display = 'block';
+                    setTimeout(() => {
+                        copySuccessMsg.style.display = 'none';
+                    }, 2000);
+
+                } catch (err) {
+                    console.error('Failed to copy: ', err);
+                    showModal("Error", "Could not copy link. Please try again.");
+                }
+            });
+
+            simulateReferralBtn.addEventListener('click', async () => {
+                triggerHaptic('impact', 'heavy');
+                
+                try {
+                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+                    
+                    // Use a transaction to safely update referrals and points
+                    await runTransaction(db, async (transaction) => {
+                        const userDoc = await transaction.get(userDocRef);
+                        if (!userDoc.exists()) {
+                            throw "Document does not exist!";
+                        }
+
+                        const currentPoints = userDoc.data().points || 0;
+                        const newPoints = currentPoints + REFERRAL_POINT_BONUS;
+                        const newReferrals = (userDoc.data().referrals || 0) + 1;
+                        const newAdLimit = BASE_AD_LIMIT + (newReferrals * AD_LIMIT_PER_REFERRAL);
+
+                        transaction.update(userDocRef, {
+                            points: newPoints,
+                            referrals: newReferrals
+                        });
+
+                        // Update local state
+                        appState.points = newPoints;
+                        appState.referrals = newReferrals;
+                        appState.adLimit = newAdLimit;
+                    });
+                    
+                    console.log("Referral simulation saved.");
+                    updateUI();
+                    showModal("Referral Added!", `You earned ${REFERRAL_POINT_BONUS} points! Your new daily ad limit is ${appState.adLimit}.`);
+
+                } catch (error) {
+                    console.error("Referral Sim Save Error:", error);
+                    showModal("Save Error", "Could not save referral. Please try again.");
+                }
+            });
+
+            // Wallet page
+            withdrawBtn.addEventListener('click', handleWithdraw);
+        });
+
+    </script>
+</body>
+</html>
+
