@@ -25,7 +25,7 @@
       once your app is approved.
     -->
     <!-- !! PASTE YOUR MONETAG SDK SCRIPT HERE !! -->
-	<script src='//libtl.com/sdk.js' data-zone='10127270' data-sdk='show_10127270'></script>
+	<script src='//libtl.com/sdk.js' data-zone='10127270' data-sdk='show_10127270'></script> 
     <!-- e.g., <script src="https://monetag-sdk-url.com/..."></script> -->
 
 
@@ -707,7 +707,7 @@
 
                 <p class="friends-description">
                     Each active friend you refer gives you 250 points + increases your daily ad limit by 5!
-                </p>
+                </Please>
 
                 <button class="friends-button" id="open-share-btn">
                     Invite a Friend
@@ -1376,7 +1376,7 @@
                 // monetag.showRewardedAd({
                 //   onSuccess: () => {
                 //     console.log("Ad watched successfully!");
-                //     onAdWatched(); // <-- This is the important part
+                //     onAdWatched(); // <-- THIS IS THE CRITICAL LINE
                 //   },
                 //   onFailure: () => {
                 //     console.log("Ad failed to load.");
@@ -1388,8 +1388,7 @@
 
                 // For now, we'll just simulate a successful ad watch.
                 // ** DELETE THIS LINE when you add your real ad code: **
-                
-// Rewarded interstitial
+                // Rewarded interstitial
 
 show_10127270().then(() => {
     // You need to add your user reward function here, which will be executed after the user watches the ad.
@@ -1633,7 +1632,7 @@ show_10127270().then(() => {
 
                 switch (platform) {
                     case 'whatsapp':
-                        shareUrl = `httpshttps://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
                         break;
                     case 'twitter':
                         shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
