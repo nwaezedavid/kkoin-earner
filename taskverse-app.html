@@ -1,326 +1,562 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>kkoin earner</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Telegram Web App SDK -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>kkoin earner App</title>
+    <!--
+      Telegram SDK
+      This script connects the app to the Telegram client.
+    -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
+
+    <!--
+      Firebase SDKs
+      These scripts connect the app to your secure Firebase backend.
+    -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+
+    <!--
+      App Styles
+      This <style> block contains all the CSS to make the app look and feel
+      like a native Telegram app. It uses Telegram's built-in theme colors.
+    -->
     <style>
-        /* Define Telegram theme variables for dark mode */
         :root {
-            --tg-theme-bg-color: #18222d;
-            --tg-theme-text-color: #ffffff;
-            --tg-theme-hint-color: #b1c3d5;
-            --tg-theme-link-color: #62bcf9;
-            --tg-theme-button-color: #31a8f6;
-            --tg-theme-button-text-color: #ffffff;
-            --tg-theme-secondary-bg-color: #232e3c;
+            /*
+              Telegram Theme Variables
+              These colors are injected by the Telegram app itself,
+              making the app's theme match the user's Telegram theme.
+            */
+            --tg-theme-bg-color: var(--tg-bg-color, #212121);
+            --tg-theme-text-color: var(--tg-text-color, #ffffff);
+            --tg-theme-hint-color: var(--tg-hint-color, #aaaaaa);
+            --tg-theme-link-color: var(--tg-link-color, #8774e1);
+            --tg-theme-button-color: var(--tg-button-color, #8774e1);
+            --tg-theme-button-text-color: var(--tg-button-text-color, #ffffff);
+            --tg-theme-secondary-bg-color: var(--tg-secondary-bg-color, #181818);
+            --tg-theme-header-bg-color: var(--tg-header-bg-color, #212121);
+            --tg-theme-section-bg-color: var(--tg-section-bg-color, #181818);
+            --tg-theme-destructive-text-color: var(--tg-destructive-text-color, #ff4d4d);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--tg-theme-bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            padding-bottom: 90px;
+            /* Space for the nav bar */
             color: var(--tg-theme-text-color);
-            padding: 16px;
+            background-color: var(--tg-theme-bg-color);
+            overscroll-behavior: none;
+            /* Prevents pull-to-refresh */
+        }
+
+        /* --- Main App Layout --- */
+        .app-container {
+            padding: 20px 16px;
+        }
+
+        .page {
+            display: none;
+            /* Pages are hidden by default */
+        }
+
+        .page.active {
+            display: block;
+            /* The active page is visible */
+        }
+
+        /* --- Header / Points Display --- */
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+        }
+
+        .points-display {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin: 0;
+        }
+
+        .points-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--tg-theme-hint-color);
+            margin-top: 4px;
+        }
+
+        /* --- Task Card Styling --- */
+        .task-list {
             display: flex;
             flex-direction: column;
-            min-height: 100vh;
-            -webkit-user-select: none; /* Disable text selection */
-            user-select: none;
-            -webkit-tap-highlight-color: transparent; /* Disable tap highlight */
+            gap: 12px;
         }
 
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .task-card,
+        .wallet-card,
+        .friends-card {
+            background-color: var(--tg-theme-section-bg-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            transition: transform 0.1s ease;
+        }
 
-        /* Use variables in Tailwind config */
-        .theme-bg { background-color: var(--tg-theme-bg-color); }
-        .theme-text { color: var(--tg-theme-text-color); }
-        .hint-text { color: var(--tg-theme-hint-color); }
-        .link-color { color: var(--tg-theme-link-color); }
-        .button-bg { background-color: var(--tg-theme-button-color); }
-        .button-text { color: var(--tg-theme-button-text-color); }
-        .secondary-bg { background-color: var(--tg-theme-secondary-bg-color); }
+        .task-card:active {
+            transform: scale(0.98);
+        }
 
-        /* Custom button style for Telegram */
-        .btn-primary {
-            background-color: var(--tg-theme-button-color);
+        .task-icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(128, 128, 128, 0.1);
+        }
+
+        .task-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--tg-theme-text-color);
+        }
+
+        .task-details {
+            flex-grow: 1;
+        }
+
+        .task-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .task-reward {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+            margin-top: 4px;
+        }
+
+        .task-button {
+            flex-shrink: 0;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
             color: var(--tg-theme-button-text-color);
-            transition: opacity 0.2s ease;
+            background-color: var(--tg-theme-button-color);
+            transition: background-color 0.1s ease, opacity 0.1s ease;
         }
-        .btn-primary:active {
-            opacity: 0.8;
+
+        .task-button:disabled {
+            background-color: #525252;
+            /* A standard "done" color */
+            color: #afafaf;
+            opacity: 0.7;
+            cursor: not-allowed;
         }
-        .btn-primary:disabled {
-            opacity: 0.5;
-            background-color: var(--tg-theme-secondary-bg-color);
+
+        .task-button.claimable {
+            background-color: #28a745;
+            /* Green for "Claim" */
+        }
+
+        .section-header {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+
+        /* --- Friends Page --- */
+        .friends-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .stat-item {
+            background-color: var(--tg-theme-bg-color);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 13px;
             color: var(--tg-theme-hint-color);
         }
 
-        /* Claimed button style */
-        .btn-claimed {
-            background-color: #34c759; /* Green for success */
-            color: white;
-            opacity: 1;
+        .friends-description {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+            line-height: 1.5;
+            margin: 0;
         }
 
-        /* Page transitions */
-        .page {
-            display: none; /* Hide all pages by default */
-            animation: fadeIn 0.3s ease;
-        }
-        .page.active {
-            display: block; /* Show active page */
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .friends-button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            color: var(--tg-theme-button-text-color);
+            background-color: var(--tg-theme-button-color);
+            cursor: pointer;
+            transition: background-color 0.1s ease;
         }
 
-        /* Nav bar styles */
+        /* --- Wallet Page --- */
+        .wallet-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .balance-box {
+            width: 100%;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .balance-koin {
+            font-size: 28px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .balance-usd {
+            font-size: 16px;
+            color: var(--tg-theme-hint-color);
+            margin-top: 2px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--tg-theme-bg-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            width: 0%;
+            /* Will be set by JS */
+            background-color: var(--tg-theme-button-color);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-label {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+            margin-top: 8px;
+        }
+
+        .wallet-input {
+            width: 100%;
+            box-sizing: border-box;
+            /* Ensures padding doesn't affect width */
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--tg-theme-secondary-bg-color);
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            margin-top: 12px;
+        }
+
+        .wallet-input::placeholder {
+            color: var(--tg-theme-hint-color);
+        }
+
+        .withdraw-button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            color: var(--tg-theme-button-text-color);
+            background-color: var(--tg-theme-button-color);
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+            margin-top: 16px;
+        }
+
+        .withdraw-button:disabled {
+            background-color: #525252;
+            color: #afafaf;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* --- Bottom Navigation Bar --- */
         .nav-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
+            height: 70px;
+            /* Standard height */
             background-color: var(--tg-theme-secondary-bg-color);
-            border-top: 1px solid var(--tg-theme-bg-color);
-            padding: 8px 16px;
-            padding-bottom: max(8px, env(safe-area-inset-bottom)); /* For iPhone X notch */
+            border-top: 1px solid var(--tg-theme-header-bg-color);
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            padding-top: 8px;
+            /* Align icons and text */
+            padding-bottom: env(safe-area-inset-bottom, 8px);
+            /* Support for iPhone X notch */
         }
+
         .nav-button {
-            transition: color 0.2s ease, transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: none;
             color: var(--tg-theme-hint-color);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 4px;
+            flex-grow: 1;
+            transition: color 0.1s ease;
         }
-        .nav-button.active {
-            color: var(--tg-theme-link-color);
-            transform: scale(1.1);
-        }
+
         .nav-button svg {
             width: 28px;
             height: 28px;
+            fill: var(--tg-theme-hint-color);
+            transition: fill 0.1s ease;
             margin-bottom: 2px;
         }
-        
-        /* Custom progress bar */
-        .progress-bar-container {
-            background-color: var(--tg-theme-secondary-bg-color);
-            border-radius: 9999px;
-            overflow: hidden;
-            height: 8px;
+
+        .nav-button.active {
+            color: var(--tg-theme-button-color);
+            /* Active icon text color */
         }
-        .progress-bar {
-            background-color: var(--tg-theme-link-color);
-            height: 100%;
-            transition: width 0.3s ease-out;
+
+        .nav-button.active svg {
+            fill: var(--tg-theme-button-color);
+            /* Active icon fill color */
         }
-        
-        /* Custom input */
-        .input-field {
-            background-color: var(--tg-theme-secondary-bg-color);
-            border: 1px solid var(--tg-theme-bg-color);
-            color: var(--tg-theme-text-color);
-            border-radius: 8px;
-            padding: 12px;
+
+        /* --- Custom Message Box --- */
+        .message-box-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
         }
-        .input-field::placeholder {
+
+        .message-box {
+            background-color: var(--tg-theme-section-bg-color);
+            padding: 24px;
+            border-radius: 14px;
+            text-align: center;
+            width: 80%;
+            max-width: 300px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .message-box-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+        }
+
+        .message-box-text {
+            font-size: 15px;
             color: var(--tg-theme-hint-color);
+            margin: 0 0 20px 0;
+        }
+
+        .message-box-button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            color: var(--tg-theme-button-text-color);
+            background-color: var(--tg-theme-button-color);
+            cursor: pointer;
+        }
+
+        /* --- Share Modal --- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            /* Hidden by default */
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--tg-theme-secondary-bg-color);
+            width: 100%;
+            box-sizing: border-box;
+            padding: 20px 20px 40px 20px;
+            border-radius: 20px 20px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal-backdrop.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .share-message-box {
+            background-color: var(--tg-theme-bg-color);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            color: var(--tg-theme-hint-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .share-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .share-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: none;
+            color: var(--tg-theme-text-color);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .share-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+        }
+
+        .share-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .share-icon.whatsapp {
+            background-color: #25D366;
+        }
+
+        .share-icon.twitter {
+            background-color: #000000;
+        }
+
+        .share-icon.facebook {
+            background-color: #1877F2;
+        }
+
+        .share-icon.linkedin {
+            background-color: #0A66C2;
+        }
+
+        .share-icon.reddit {
+            background-color: #FF4500;
+        }
+
+        .copy-link-button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            color: var(--tg-theme-button-text-color);
+            background-color: var(--tg-theme-button-color);
+            cursor: pointer;
         }
     </style>
 </head>
-<body class="theme-bg theme-text">
 
-    <!-- Header (Stays on all pages) -->
-    <header class="w-full max-w-md mx-auto text-center py-4">
-        <p class="hint-text text-sm" id="welcome-message">Welcome, User!</p>
-        <div class="flex items-center justify-center space-x-2 mt-2">
-            <img src="https://placehold.co/32x32/ffD700/000000?text=K" alt="KKoin" class="w-8 h-8 rounded-full">
-            <h1 class="text-4xl font-bold" id="points-display">0</h1>
-        </div>
-        <p class="hint-text" id="koin-balance-display">≈ 0 $KKoin</p>
-    </header>
-
-    <!-- Page Container (Swappable Content) -->
-    <main id="page-container" class="w-full max-w-md mx-auto flex-grow" style="padding-bottom: 80px;">
-    
-        <!-- Page 1: Tasks (Default) -->
-        <section id="tasks-page" class="page active space-y-3">
-            
-            <!-- Get Started Section -->
-            <h3 class="text-xl font-semibold">Get Started</h3>
-        
-            <!-- Task 1: Join Channel -->
-            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="100" data-task-id="task-1">
-                <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48a16,16,0,0,0-16-16H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16Zm-33.43,26.57-80,64A8,8,0,0,0,112,144v8.34l-14.57-11.65a8,8,0,0,0-10.86,14.62l32,25.61A8,8,0,0,0,128,184a8,8,0,0,0,7.43-5.43l40-104A8,8,0,0,0,190.57,74.57Z"></path></svg>
-                </div>
-                <div class="flex-grow">
-                    <p class="font-semibold">Join KKoin Earner Channel</p>
-                    <p class="text-sm font-bold link-color">+100 Points</p>
-                </div>
-                <button class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Join</button>
-            </div>
-
-            <!-- Task 3: Follow on X (Twitter) -->
-            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="100" data-task-id="task-3">
-                <div class="w-12 h-12 rounded-full bg-black flex items-center justify-center shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48a16,16,0,0,0-16-16H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16ZM178.22,94.31l33.34,33.34-44.1,44.1-33.34-33.34ZM167.31,83.4l15.25-15.25L198.4,84,182.56,99.8ZM88.69,172.6,73.44,187.85,57.6,172,73.44,156.14Zm89.57.86-33.34-33.34,44.1-44.1,33.34,33.34Z"></path></svg>
-                </div>
-                <div class="flex-grow">
-                    <p class="font-semibold">Follow us on X</p>
-                    <p class="text-sm font-bold link-color">+100 Points</p>
-                </div>
-                <button class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Follow</button>
-            </div>
-            
-            <!-- Daily Tasks Section -->
-            <h3 class="text-xl font-semibold pt-4">Daily Tasks</h3>
-
-            <!-- Task 2: Monetag Ad Task -->
-            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3 task-card" data-reward="50" data-task-id="task-monetag">
-                <div class="w-12 h-12 rounded-full bg-yellow-500 flex items-center justify-center shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32a16,16,0,0,0-16,16V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM112,160a16,16,0,1,1,16-16A16,16,0,0,1,112,160Zm0-32a16,16,0,1,1,16-16A16,16,0,0,1,112,128Zm32,32a16,16,0,1,1,16-16A16,16,0,0,1,144,160Z"></path></svg>
-                </div>
-                <div class="flex-grow">
-                    <p class="font-semibold">Watch an Ad</p>
-                    <p class="text-sm font-bold link-color">+50 Points</p>
-                </div>
-                <button id="ad-task-btn" class="claim-btn button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">
-                    Watch (0/10)
-                </button>
-            </div>
-
-            <!-- Grow Your Team Section -->
-            <h3 class="text-xl font-semibold pt-4">Grow Your Team</h3>
-            <div class="secondary-bg p-4 rounded-2xl flex items-center justify-between space-x-3">
-                <div class="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M234.38,118.94,143.6,28.16a15.9,15.9,0,0,0-23.2,0L30.62,118.94A16,16,0,0,0,42.22,144H64v64a16,16,0,0,0,16,16h80a16,16,0,0,0,16-16V144h21.78a16,16,0,0,0,11.6-25.06ZM160,208H96V128H74.22L128,74.06,181.78,128H160Z"></path></svg>
-                </div>
-                <div class="flex-grow">
-                    <p class="font-semibold">Invite a Friend</p>
-                    <p class="text-sm hint-text">Get 250 points + 5 ad slots!</p>
-                </div>
-                <button id="invite-btn-home" class="button-bg button-text px-4 py-2 rounded-lg font-semibold btn-primary shrink-0">Invite</button>
-            </div>
-
-        </section>
-
-        <!-- Page 2: Friends -->
-        <section id="friends-page" class="page space-y-4">
-            <h3 class="text-xl font-semibold">Invite Friends, Earn More</h3>
-
-            <!-- New Stats Box -->
-            <div class="secondary-bg p-4 rounded-2xl grid grid-cols-3 gap-2 text-center">
-                <div>
-                    <p class="text-sm hint-text">Total Friends</p>
-                    <p id="total-referrals-display" class="text-lg font-bold">0</p>
-                </div>
-                <div>
-                    <p class="text-sm hint-text">Bonus / Friend</p>
-                    <p id="referral-bonus-display" class="text-lg font-bold">250</p>
-                </div>
-                <div>
-                    <p class="text-sm hint-text">Total Bonus</p>
-                    <p id="total-referral-points-display" class="text-lg font-bold">0</p>
-                </div>
-            </div>
-
-            <!-- Existing Invite Box -->
-            <div class="secondary-bg p-4 rounded-2xl text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="mx-auto link-color" viewBox="0 0 256 256"><path d="M240,128a16,16,0,0,1-16,16H200v24a16,16,0,0,1-32,0V144H88v24a16,16,0,0,1-32,0V144H32a16,16,0,0,1,0-32H56V72a16,16,0,0,1,32,0V96h72V72a16,16,0,0,1,32,0V96h24a16,16,0,0,1,16,16ZM168,72a16,16,0,1,1-16,16A16,16,0,0,1,168,72Zm-80,0a16,16,0,1,1-16,16A16,16,0,0,1,88,72Zm80,112a16,16,0,1,1,16-16A16,16,0,0,1,168,184Zm-80,0a16,16,0,1,1,16-16A16,16,0,0,1,88,184Z"></path></svg>
-                <p class="text-2xl font-bold mt-2">Get +5 Ad Slots!</p>
-                <p class="hint-text mt-1">Each active friend you refer gives you 250 points + increases your daily ad limit by 5!</p>
-                <button id="copy-link-btn" class="w-full btn-primary font-semibold py-3 px-4 rounded-lg mt-4">
-                    Copy Your Invite Link
-                </button>
-                <!-- This button is hidden by default and only shown in demo mode -->
-                <button id="simulate-referral-btn" class="w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg mt-3 text-sm" style="display: none;">
-                    (Simulate 1 New Referral)
-                </button>
-                <p id="copy-success-msg" class="text-green-400 text-sm mt-2" style="display: none;">Copied to clipboard!</p>
-            </div>
-        </section>
-
-        <!-- Page 3: Wallet -->
-        <section id="wallet-page" class="page space-y-4">
-            <h3 class="text-xl font-semibold">Withdrawal</h3>
-            
-            <!-- Conversion Box -->
-            <div class="secondary-bg p-4 rounded-2xl text-center">
-                <p class="hint-text">Your Balance</p>
-                <p class="text-3xl font-bold" id="wallet-points-display">0</p>
-                <p class="text-lg font-semibold link-color" id="wallet-koin-display">≈ 0 $KKoin</p>
-            </div>
-
-            <!-- Withdrawal Goal -->
-            <div class="secondary-bg p-4 rounded-2xl">
-                <p class="font-semibold">Minimum Withdrawal</p>
-                <p class="hint-text text-sm">100,000 Points = 100 $KKoin (≈ $1)</p>
-                <div class="progress-bar-container mt-2">
-                    <div id="progress-bar" class="progress-bar" style="width: 0%;"></div>
-                </div>
-                <p class="hint-text text-xs text-right mt-1" id="progress-text">0 / 100,000</p>
-            </div>
-
-            <!-- Wallet Input -->
-            <div class="space-y-2">
-                <label for="wallet-address" class="font-semibold">Your TRC20 Wallet Address</label>
-                <input type="text" id="wallet-address" class="input-field" placeholder="T...">
-            </div>
-
-            <!-- Withdraw Button -->
-            <button id="withdraw-btn" class="w-full btn-primary font-semibold py-3 px-4 rounded-lg" disabled>
-                Withdraw (Not enough points)
-            </button>
-        </section>
-
-    </main>
-
-    <!-- Custom Modal for Alerts -->
-    <div id="custom-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div class="secondary-bg p-6 rounded-2xl shadow-lg w-10/12 max-w-sm">
-            <h3 id="modal-title" class="text-lg font-semibold mb-2">Notice</h3>
-            <p id="modal-message" class="hint-text mb-4">This is a message.</p>
-            <button id="modal-ok-btn" class="w-full btn-primary font-semibold py-2 px-4 rounded-lg">
-                OK
-            </button>
-        </div>
-    </div>
-
-
-    <!-- Bottom Navigation Bar -->
-    <nav class="nav-bar w-full max-w-md mx-auto">
-        <div class="flex justify-around">
-            <!-- Nav Button 1: Tasks -->
-            <button id="nav-tasks" class="nav-button active flex flex-col items-center" data-page="tasks-page">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32a16,16,0,0,0-16,16V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM112,160a16,16,0,1,1,16-16A16,16,0,0,1,112,160Zm0-32a16,16,0,1,1,16-16A16,16,0,0,1,112,128Zm32,32a16,16,0,1,1,16-16A16,16,0,0,1,144,160Z"></path></svg>
-                <span class="text-xs font-medium">Tasks</span>
-            </button>
-            <!-- Nav Button 2: Friends -->
-            <button id="nav-friends" class="nav-button flex flex-col items-center" data-page="friends-page">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 256 256"><path d="M234.38,118.94,143.6,28.16a15.9,15.9,0,0,0-23.2,0L30.62,118.94A16,16,0,0,0,42.22,144H64v64a16,16,0,0,0,16,16h80a16,16,0,0,0,16-16V144h21.78a16,16,0,0,0,11.6-25.06ZM160,208H96V128H74.22L128,74.06,181.78,128H160Z"></path></svg>
-                <span class="text-xs font-medium">Friends</span>
-            </button>
-            <!-- Nav Button 3: Wallet -->
-            <button id="nav-wallet" class="nav-button flex flex-col items-center" data-page="wallet-page">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM208,192H48V80H208Zm-48-80a24,24,0,1,1-24,24A24,24,0,0,1,160,112Z"></path></svg>
-                <span class="text-xs font-medium">Wallet</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- Main Application Logic -->
-    <script type="module">
-        // --- CONFIGURATION & SETUP ---
-        
-        // --- !! USER-DEFINED FIREBASE CONFIG !! ---
-        // This is where you paste your Firebase config object.
-        // It's safe to have this here; security is handled by Firestore Rules.
-        // If this is 'null', the app will enter DEMO MODE.
+<body>
+    <!--
+      This is where your Firebase configuration will go.
+      You must get this from your Firebase project settings.
+    -->
+    <script>
+        // --- !! PASTE YOUR FIREBASE CONFIG HERE !! ---
+        //
+        // Go to your Firebase Project Settings > General > "Your apps"
+        // Click the Web icon (</>) and copy the `firebaseConfig` object.
+        //
+        // Replace `null` with the config object from Firebase.
+        //
         const YOUR_FIREBASE_CONFIG = {
   apiKey: "AIzaSyBFwBCKF6Aqt5PaMiLf4JvnCXST-HI48zc",
   authDomain: "kkoin-earner.firebaseapp.com",
@@ -329,961 +565,1055 @@
   messagingSenderId: "856267442823",
   appId: "1:856267442823:web:26218a03b440a0c7394622",
   measurementId: "G-YNXS91ZCB1"
-}; 
-        /* Example:
-        const YOUR_FIREBASE_CONFIG = {
-          apiKey: "AIza...",
-          authDomain: "myapp.firebaseapp.com",
-          projectId: "myapp-123",
-          storageBucket: "myapp.appspot.com",
-          messagingSenderId: "123456",
-          appId: "1:123456:web:abcd..."
-        };
-        */
-        // ------------------------------------------
+};
+        //
+        // Example:
+        // const YOUR_FIREBASE_CONFIG = {
+        //   apiKey: "AIza...",
+        //   authDomain: "my-app.firebaseapp.com",
+        //   projectId: "my-app",
+        //   storageBucket: "my-app.appspot.com",
+        //   messagingSenderId: "12345",
+        //   appId: "1:123:web:abc"
+        // };
+        //
+        // --- End of Firebase Config ---
 
-        // --- Firebase SDK Imports ---
-        // These will be dynamically imported based on demo mode status.
-        let initializeApp, getAuth, signInAnonymously, signInWithCustomToken, 
-            getFirestore, doc, getDoc, setDoc, updateDoc, 
-            collection, addDoc, serverTimestamp, runTransaction, setLogLevel;
 
-        // --- App Constants ---
-        const MIN_WITHDRAW_POINTS = 100000;
-        const POINTS_TO_KOIN_RATE = 1000; // 1000 points = 1 $KKoin
-        const REFERRAL_POINT_BONUS = 250; // Bonus points per referral
-        const BASE_AD_LIMIT = 10;
-        const AD_LIMIT_PER_REFERRAL = 5;
-        const LOCAL_STORAGE_KEY = 'kkoinEarnerDemoState'; // For demo mode
-        const TELEGRAM_CHANNEL_LINK = 'https://t.me/kkoinearner';
-        const X_ACCOUNT_LINK = 'https://x.com/kkoinearner';
+        // --- !! SET YOUR BOT USERNAME HERE !! ---
+        //
+        // This is used to create the referral links.
+        // (e.g., "KkoinEarnerBot")
+        //
+        const YOUR_BOT_USERNAME_HERE = "YOUR_BOT_USERNAME_HERE";
+        //
+        // --- End of Bot Username ---
+    </script>
 
-        // --- App State ---
-        let appState = {
-            userId: null, 
-            firstName: 'User',
-            points: 0,
-            claimedTasks: [],
-            adsWatchedToday: 0,
-            lastAdWatchDate: null,
-            adLimit: BASE_AD_LIMIT,
-            referrals: 0,
-            processingWithdrawal: false,
-            // New state for 2-step tasks
-            task1Clicked: false, // Tracks if 'Join' has been clicked
-            task3Clicked: false  // Tracks if 'Follow' has been clicked
-        };
 
-        // --- Global Firebase & App Variables ---
-        let app, auth, db;
-        let isDemoMode = false;
-        let tg; // Telegram SDK
-        
-        // --- DOM Elements (will be assigned in main()) ---
-        let pointsDisplay, koinBalanceDisplay, welcomeMessage,
-            pages, navButtons, adTaskBtn, inviteBtnHome,
-            copyLinkBtn, copySuccessMsg, simulateReferralBtn,
-            totalReferralsDisplay, referralBonusDisplay, totalReferralPointsDisplay,
-            walletPointsDisplay, walletKoinDisplay, progressBar, progressText,
-            walletAddressInput, withdrawBtn, modal, modalTitle,
-            modalMessage, modalOkBtn;
-        
-        // --- Utility Functions ---
-        
-        function showModal(title, message) {
-            // Check if modal elements are ready
-            if (modalTitle && modalMessage && modal && modalOkBtn) {
-                modalTitle.textContent = title;
-                modalMessage.textContent = message;
-                modal.style.display = 'flex';
-            } else {
-                // Fallback if modal isn't ready
-                console.log(`MODAL: ${title} - ${message}`);
+    <!--
+      App HTML Structure
+      This is the main content of your app, divided into pages.
+    -->
+    <div class="app-container">
+        <!-- Header: Displays points, always visible -->
+        <div class="header">
+            <h1 class="points-display" id="points-display">0</h1>
+            <p class="points-label" id="user-greeting">Welcome, User!</p>
+        </div>
+
+        <!-- Page 1: Tasks (Default Page) -->
+        <div id="tasks-page" class="page active">
+            <!-- "Get Started" Tasks (One-time) -->
+            <h2 class="section-header">Get Started</h2>
+            <div class="task-list">
+                <div class="task-card">
+                    <div class="task-icon">
+                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M56.4107 16.2941C54.401 15.1121 34.1834 3.421 32.0001 3.421C29.8168 3.421 9.59918 15.1121 7.58946 16.2941C5.31491 17.6201 5.74812 21.0181 8.07141 22.3831L10.6668 23.9461V40.2311C10.6668 43.1111 12.915 45.3591 15.795 45.3591H48.2052C51.0852 45.3591 53.3334 43.1111 53.3334 40.2311V23.9461L55.9288 22.3831C58.252 21.0181 58.6853 17.6201 56.4107 16.2941ZM48.2052 40.2311H15.795V26.8521L32.0001 36.3331L48.2052 26.8521V40.2311ZM32.0001 31.2051L12.0238 19.8821L32.0001 8.57904L51.9763 19.8821L32.0001 31.2051Z"
+                                fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="task-details">
+                        <p class="task-title">Join KKoin Earner Channel</p>
+                        <p class="task-reward">+ 100 $KKoin</p>
+                    </div>
+                    <button class="task-button" id="task-1-btn" data-task-id="task-1">Join</button>
+                </div>
+
+                <div class="task-card">
+                    <div class="task-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M14.0625 9.1875L23.25 0H21.1875L13.125 7.875L6.65625 0H0L9.65625 14.0625L0 24H2.0625L10.5 15.6562L17.3438 24H24L14.0625 9.1875ZM11.4375 14.3438L3.1875 2.34375H5.71875L12.375 10.7812L20.8125 21.6562H18.2812L11.4375 14.3438Z"
+                                fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="task-details">
+                        <p class="task-title">Follow us on X</p>
+                        <p class="task-reward">+ 100 $KKoin</p>
+                    </div>
+                    <button class="task-button" id="task-3-btn" data-task-id="task-3">Follow</button>
+                </div>
+            </div>
+
+            <!-- "Daily" Tasks -->
+            <h2 class="section-header">Daily Tasks</h2>
+            <div class="task-list">
+                <div class="task-card">
+                    <div class="task-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M20.9992 6.16406C20.9992 5.05949 20.104 4.16406 18.9992 4.16406H4.99922C3.89465 4.16406 2.99922 5.05949 2.99922 6.16406V17.832C2.99922 18.9366 3.89465 19.832 4.99922 19.832H18.9992C20.104 19.832 20.9992 18.9366 20.9992 17.832V6.16406ZM18.9992 6.16406V17.832L15.4992 14.332L10.166 19.6654L7.49922 16.9987L4.99922 19.5543V6.16406H18.9992ZM9.99922 11.1641C10.8276 11.1641 11.4992 10.4925 11.4992 9.66406C11.4992 8.83564 10.8276 8.16406 9.99922 8.16406C9.17079 8.16406 8.49922 8.83564 8.49922 9.66406C8.49922 10.4925 9.17079 11.1641 9.99922 11.1641Z"
+                                fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="task-details">
+                        <p class="task-title">Watch an Ad</p>
+                        <p class="task-reward">+ 50 $KKoin</p>
+                    </div>
+                    <button class="task-button" id="ad-task-btn" data-task-id="ad-task">Watch (0/10)</button>
+                </div>
+            </div>
+
+            <!-- "Invite" Card -->
+            <h2 class="section-header">Grow Your Team</h2>
+            <div class="task-list">
+                <div class="task-card" id="invite-card-btn" style="cursor: pointer;">
+                    <div class="task-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M16 13C17.6569 13 19 11.6569 19 10C19 8.34315 17.6569 7 16 7C14.3431 7 13 8.34315 13 10C13 11.6569 14.3431 13 16 13ZM16 13C18.1217 13 20.1566 13.8429 21.6569 15.3431C23.1571 16.8434 24 18.8783 24 21H22C22 19.4087 21.3679 17.8826 20.2426 16.7574C19.1174 15.6321 17.5913 15 16 15C14.4087 15 12.8826 15.6321 11.7574 16.7574C10.6321 17.8826 10 19.4087 10 21H8C8 18.8783 8.84286 16.8434 10.3431 15.3431C11.8434 13.8429 13.8783 13 16 13ZM8 12C9.65685 12 11 10.6569 11 9C11 7.34315 9.65685 6 8 6C6.34315 6 5 7.34315 5 9C5 10.6569 6.34315 12 8 12ZM8 12C5.60474 12 3.3934 13.1251 1.75736 14.7612C0.12132 16.3972 0.842287 18.8354 0.842287 21H6C6 19.4087 6.63214 17.8826 7.75736 16.7574C8.88258 15.6321 10.4087 15 12 15C12.3377 15 12.668 15.0315 12.9866 15.092L8 12Z"
+                                fill="currentColor" />
+                        </svg>
+                    </div>
+                    <div class="task-details">
+                        <p class="task-title">Invite a Friend</p>
+                        <p class="task-reward">Get 250 $KKoin + 5 ad slots!</p>
+                    </div>
+                    <button class="task-button" id="invite-btn-tasks">Invite</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Page 2: Friends (Referrals) -->
+        <div id="friends-page" class="page">
+            <div class="friends-card">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="friends-total">0</div>
+                        <div class="stat-label">Total Friends</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="friends-bonus-per">250</div>
+                        <div class="stat-label">Bonus / Friend</div>
+                    </div>
+                </div>
+                <div class="stat-item" style="width: 100%; box-sizing: border-box;">
+                    <div class="stat-value" id="friends-total-bonus">0</div>
+                    <div class="stat-label">Total Bonus Earned</div>
+                </div>
+
+                <p class="friends-description">
+                    Each active friend you refer gives you 250 points + increases your daily ad limit by 5!
+                </p>
+
+                <button class="friends-button" id="open-share-btn">
+                    Invite a Friend
+                </button>
+
+                <button class="friends-button" id="simulate-referral-btn"
+                    style="background-color: #555; display: none;">
+                    Simulate 1 New Referral
+                </button>
+            </div>
+        </div>
+
+        <!-- Page 3: Wallet (Withdrawal) -->
+        <div id="wallet-page" class="page">
+            <div class="wallet-card">
+                <div class="balance-box">
+                    <div class="balance-label">Your Balance</div>
+                    <div class="balance-koin" id="wallet-koin-balance">0 $KKoin</div>
+                    <div class="balance-usd" id="wallet-usd-balance">≈ $0.00 USD</div>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar-inner" id="wallet-progress-bar"></div>
+                </div>
+                <div class="progress-label" id="wallet-progress-label">
+                    0 / 100,000 to withdraw
+                </div>
+
+                <input type="text" class="wallet-input" id="wallet-address-input"
+                    placeholder="Enter your TRC20 Wallet Address">
+
+                <button class="withdraw-button" id="withdraw-button" disabled>
+                    Withdraw
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!--
+      Bottom Navigation Bar
+      This stays at the bottom and switches the active page.
+    -->
+    <nav class="nav-bar">
+        <button class="nav-button active" data-page="tasks-page">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M11.383 1.018a1.5 1.5 0 0 1 1.234 0l9 4.25a1.5 1.5 0 0 1 .883 1.382v9.5c0 .64-.4 1.21-1.002 1.43l-9.001 3.374a1.5 1.5 0 0 1-.998 0l-9.001-3.374A1.5 1.5 0 0 1 1.5 16.15V6.65a1.5 1.5 0 0 1 .883-1.382l9-4.25Zm.617 1.139L3.001 6.407v9.743l9 3.375 9-3.375V6.407L12.001 2.157Z"
+                    fill="currentColor" />
+            </svg>
+            <span>Tasks</span>
+        </button>
+        <button class="nav-button" data-page="friends-page">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M12 14c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0-6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2Zm0 8c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Zm-6 4c.22-.72 3.31-2 6-2 2.7 0 5.8 1.29 6 2H6Zm12-2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Zm-6 4c.22-.72 3.31-2 6-2 2.7 0 5.8 1.29 6 2H12Z"
+                    fill="currentColor" />
+            </svg>
+            <span>Friends</span>
+        </button>
+        <button class="nav-button" data-page="wallet-page">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path
+                    d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2ZM4 6h16v2H4V6Zm16 12H4v-8h16v8Zm-6-4c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2Z"
+                    fill="currentColor" />
+            </svg>
+            <span>Wallet</span>
+        </button>
+    </nav>
+
+    <!--
+      Custom Message Box
+      A simple replacement for alert().
+    -->
+    <div class="message-box-backdrop" id="message-box">
+        <div class="message-box">
+            <h2 class="message-box-title" id="message-box-title">Success</h2>
+            <p class="message-box-text" id="message-box-text">Your points have been added!</p>
+            <button class="message-box-button" id="message-box-close">OK</button>
+        </div>
+    </div>
+
+    <!--
+      Share Modal
+      A pop-up for sharing the referral link.
+    -->
+    <div class="modal-backdrop" id="share-modal">
+        <div class="modal-content">
+            <h2 class="modal-header">Invite Your Friends</h2>
+            <div class="share-message-box" id="share-message-text">
+                <!-- Share text will be injected by JS -->
+            </div>
+            <div class="share-grid">
+                <!-- WhatsApp -->
+                <button class="share-button" id="share-whatsapp">
+                    <div class="share-icon whatsapp">
+                        <svg fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M16.75 13.96c.25.5.5 1 .5 1.5s.25 1 .25 1l-1.5 1.25c0 0-.5-.25-1.25-.5s-1.25-.75-2-1.25c-.25-.25-1-1-1.5-1.5c-.5-.5-1-1-1.25-1.25s-.75-1-1.25-1.75c-.5-.75-.5-1.25-.5-1.25s0-.5.25-1S8 8.21 8.25 8.21s1 .5 1.25.75s.5.75.75 1.25s.25 1 .5 1.25c.25.25.75.75 1.5 1.25s1.25.75 1.5 1c.25.25.5.5.75.75s.5.5.75.75c.25.25.5.25.75.5m5.5-1.21c-.25-1-1.25-2-2-2.5s-1.75-1-2.5-1c-.75 0-1.5.25-2.25.5s-1.25.75-2 1c-.75.25-1.25.5-2 .75s-1.25.5-1.75.75c-.5.25-1 .5-1.5 1S4 14.71 3.5 15.46s-1 1.5-1 2.5s.5 2 1 2.5s1 1 1.5 1.25s1.25.5 2 .75s1.25.5 2 .5h.25c.75 0 1.75-.25 2.75-1s1.75-1.5 2.5-2.25s1.25-1.75 1.75-2.75s1-2 1-3c0-1-.25-2-1-3.25zM12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <span>WhatsApp</span>
+                </button>
+                <!-- Twitter / X -->
+                <button class="share-button" id="share-twitter">
+                    <div class="share-icon twitter">
+                        <svg fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M14.0625 9.1875L23.25 0H21.1875L13.125 7.875L6.65625 0H0L9.65625 14.0625L0 24H2.0625L10.5 15.6562L17.3438 24H24L14.0625 9.1875ZM11.4375 14.3438L3.1875 2.34375H5.71875L12.375 10.7812L20.8125 21.6562H18.2812L11.4375 14.3438Z">
+                            </path>
+                        </svg>
+                    </div>
+                    <span>Twitter</span>
+                </button>
+                <!-- Facebook -->
+                <button class="share-button" id="share-facebook">
+                    <div class="share-icon facebook">
+                        <svg fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z">
+                            </path>
+                        </svg>
+                    </div>
+                    <span>Facebook</span>
+                </button>
+                <!-- LinkedIn -->
+                <button class="share-button" id="share-linkedin">
+                    <div class="share-icon linkedin">
+                        <svg fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-11 15H5v-9h3v9zM6.5 8.25C5.54 8.25 4.75 7.46 4.75 6.5S5.54 4.75 6.5 4.75s1.75.79 1.75 1.75S7.46 8.25 6.5 8.25zM19 18h-3v-4.74c0-1.42-.6-2.38-1.77-2.38-1.25 0-1.73.91-1.73 2.38V18h-3v-9h2.9v1.3a3.11 3.11 0 0 1 2.8-1.45C17.64 8.85 19 10.77 19 13.26V18z">
+                            </path>
+                        </svg>
+                    </div>
+                    <span>LinkedIn</span>
+                </button>
+                <!-- Reddit -->
+                <button class="share-button" id="share-reddit">
+                    <div class="share-icon reddit">
+                        <svg fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12c0 4.14 2.5 7.67 6 9.1v-2.16c0-.39.22-.73.55-.89C6.8 17.5 6 15.82 6 14c0-2.76 2.69-5 6-5s6 2.24 6 5c0 1.82-.8 3.5-2.55 4.05.33.16.55.5.55.89v2.16c3.5-.43 6-3.96 6-9.1C22 6.48 17.52 2 12 2zm-1 14.5c0 .83-.67 1.5-1.5 1.5S8 17.33 8 16.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5zm3 0c0 .83-.67 1.5-1.5 1.5S11 17.33 11 16.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5zM12 9c-2.76 0-5 2.24-5 5h10c0-2.76-2.24-5-5-5z">
+                            </path>
+                        </svg>
+                    </div>
+                    <span>Reddit</span>
+                </button>
+            </div>
+            <button class="copy-link-button" id="copy-referral-btn">
+                Copy Your Invite Link
+            </button>
+        </div>
+    </div>
+
+
+    <!--
+      Main App JavaScript
+      This is the "brain" of the app.
+    -->
+    <script>
+        // Immediately try to set the app theme
+        // This runs before the rest of the script to prevent a "flash" of the wrong colors.
+        try {
+            const tg = window.Telegram.WebApp;
+            if (tg.initDataUnsafe) {
+                tg.ready(); // Let Telegram know the app is ready
+                // Set theme colors
+                document.body.style.backgroundColor = tg.themeParams.bg_color || '#212121';
+                document.body.style.color = tg.themeParams.text_color || '#ffffff';
+                // Set header color
+                tg.setHeaderColor(tg.themeParams.header_bg_color || tg.themeParams.secondary_bg_color || '#212121');
+                tg.expand(); // Make the app full-screen
             }
-        }
-        
-        function triggerHaptic(type = 'impact', style = 'medium') {
-            if (tg && tg.HapticFeedback) {
-                if (type === 'impact') {
-                    tg.HapticFeedback.impactOccurred(style);
-                } else if (type === 'notification') {
-                    tg.HapticFeedback.notificationOccurred(style);
-                } else if (type === 'selection') {
-                    tg.HapticFeedback.selectionChanged();
-                }
-            }
-        }
-
-        function formatPoints(points) {
-            return new Intl.NumberFormat().format(points);
-        }
-
-        // --- Core App Logic ---
-
-        function updateUI() {
-            if (!pointsDisplay) return; // Exit if DOM not ready
-
-            // Header
-            pointsDisplay.textContent = formatPoints(appState.points);
-            const koinBalance = appState.points / POINTS_TO_KOIN_RATE;
-            koinBalanceDisplay.textContent = `≈ ${formatPoints(koinBalance.toFixed(0))} $KKoin`;
-            welcomeMessage.textContent = `Welcome, ${appState.firstName}!`;
-
-            // Tasks Page
-            updateTaskButtons();
-            
-            // Friends Page
-            const totalReferralPoints = appState.referrals * REFERRAL_POINT_BONUS;
-            totalReferralsDisplay.textContent = appState.referrals;
-            referralBonusDisplay.textContent = `${REFERRAL_POINT_BONUS}`;
-            totalReferralPointsDisplay.textContent = formatPoints(totalReferralPoints);
-
-            // Wallet Page
-            walletPointsDisplay.textContent = formatPoints(appState.points);
-            walletKoinDisplay.textContent = `≈ ${formatPoints(koinBalance.toFixed(0))} $KKoin`;
-            
-            const progressPercent = Math.min((appState.points / MIN_WITHDRAW_POINTS) * 100, 100);
-            progressBar.style.width = `${progressPercent}%`;
-            progressText.textContent = `${formatPoints(appState.points)} / ${formatPoints(MIN_WITHDRAW_POINTS)}`;
-
-            if (appState.processingWithdrawal) {
-                withdrawBtn.disabled = true;
-                withdrawBtn.textContent = 'Processing Withdrawal...';
-            } else if (appState.points >= MIN_WITHDRAW_POINTS) {
-                withdrawBtn.disabled = false;
-                withdrawBtn.textContent = 'Withdraw';
-            } else {
-                withdrawBtn.disabled = true;
-                withdrawBtn.textContent = 'Not enough points';
-            }
-        }
-
-        function updateTaskButtons() {
-            const claimButtons = document.querySelectorAll('.claim-btn');
-            claimButtons.forEach(button => {
-                const taskCard = button.closest('.task-card');
-                if (!taskCard) return; // safety check
-                
-                const taskId = taskCard.dataset.taskId;
-                
-                // --- Standard "Done" logic ---
-                if (appState.claimedTasks.includes(taskId)) {
-                    button.textContent = 'Done';
-                    button.disabled = true;
-                    button.classList.remove('btn-primary');
-                    button.classList.add('btn-claimed');
-                    return; // Stop here, task is done
-                }
-
-                // --- Task-specific logic for non-claimed tasks ---
-                
-                // Reset button to base state
-                button.disabled = false;
-                button.classList.add('btn-primary');
-                button.classList.remove('btn-claimed');
-                
-                if (taskId === 'task-1') {
-                    // 2-Step Join Task
-                    button.textContent = appState.task1Clicked ? 'Claim' : 'Join';
-                } else if (taskId === 'task-3') {
-                    // 2-Step Follow Task
-                    button.textContent = appState.task3Clicked ? 'Claim' : 'Follow';
-                } else if (taskId === 'task-monetag') {
-                    // Ad Task
-                    const adsLeft = appState.adLimit - appState.adsWatchedToday;
-                    button.textContent = `Watch (${appState.adsWatchedToday}/${appState.adLimit})`;
-                    if (adsLeft <= 0) {
-                        button.textContent = 'Limit Reached';
-                        button.disabled = true;
-                    }
-                }
-            });
-        }
-        
-        function switchPage(pageId) {
-            triggerHaptic('selection');
-            pages.forEach(page => {
-                page.classList.toggle('active', page.id === pageId);
-            });
-
-            Object.values(navButtons).forEach(button => {
-                if (button) { // Safety check
-                    button.classList.toggle('active', button.dataset.page === pageId);
-                }
-            });
-        }
-
-        // --- Demo Mode (localStorage) Logic ---
-        function loadStateFromLocalStorage() {
-            const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (savedState) {
-                Object.assign(appState, JSON.parse(savedState));
-            }
-            
-            // Set user info from Telegram (even in demo mode)
-            appState.userId = tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'demo_user';
-            appState.firstName = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'Demo User';
-            
-            // Check and reset daily ad count
-            const today = new Date().toISOString().split('T')[0];
-            if (appState.lastAdWatchDate !== today) {
-                appState.adsWatchedToday = 0;
-                appState.lastAdWatchDate = today;
-            }
-            // Recalculate ad limit based on referrals
-            appState.adLimit = BASE_AD_LIMIT + (appState.referrals * AD_LIMIT_PER_REFERRAL);
-
-            saveStateToLocalStorage();
-            console.log("Loaded from localStorage:", appState);
-        }
-
-        function saveStateToLocalStorage() {
-            if (isDemoMode) {
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appState));
-            }
-        }
-
-
-        // --- Firestore & Auth Logic (Only runs if NOT in demo mode) ---
-        async function initializeFirebase() {
-            // 1. Check for injected config first (live environment)
-            let firebaseConfig = YOUR_FIREBASE_CONFIG; // Use the one you pasted
-            
-            // Check for official environment-injected config (if it exists)
-            try {
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    const envConfig = JSON.parse(__firebase_config);
-                    if (envConfig.apiKey) {
-                        firebaseConfig = envConfig;
-                    }
-                }
-            } catch (e) {}
-
-            // 2. Decide on Demo Mode
-            if (!firebaseConfig || !firebaseConfig.apiKey) {
-                isDemoMode = true;
-                console.warn("--- DEMO MODE ACTIVATED ---");
-                console.warn("Firebase config is missing or invalid. App will use localStorage.");
-                return; // Stop initialization
-            }
-            
-            // 3. We are in LIVE MODE. Load Firebase modules.
-            try {
-                const firebaseApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-                const firebaseAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-                const firebaseFirestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-
-                initializeApp = firebaseApp.initializeApp;
-                getAuth = firebaseAuth.getAuth;
-                signInAnonymously = firebaseAuth.signInAnonymously;
-                signInWithCustomToken = firebaseAuth.signInWithCustomToken;
-                
-                getFirestore = firebaseFirestore.getFirestore;
-                doc = firebaseFirestore.doc;
-                getDoc = firebaseFirestore.getDoc;
-                setDoc = firebaseFirestore.setDoc;
-                updateDoc = firebaseFirestore.updateDoc;
-                collection = firebaseFirestore.collection;
-                addDoc = firebaseFirestore.addDoc;
-                serverTimestamp = firebaseFirestore.serverTimestamp;
-                runTransaction = firebaseFirestore.runTransaction;
-                setLogLevel = firebaseFirestore.setLogLevel;
-            } catch (e) {
-                console.error("Failed to load Firebase modules:", e);
-                isDemoMode = true; // Fallback to demo mode if imports fail
-                return;
-            }
-
-            // 4. Initialize Firebase App
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                setLogLevel('Debug'); // Enable Firestore logging
-            } catch (e) {
-                console.error("Firebase Init Error:", e);
-                isDemoMode = true; // Fallback to demo mode
-            }
-        }
-
-        async function signInUser() {
-            // This function is only called if !isDemoMode
-            try {
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                const user = auth.currentUser;
-                if (user) {
-                    // Use Telegram user ID if available, otherwise use Firebase anonymous UID
-                    appState.userId = tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : user.uid;
-                    appState.firstName = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'User';
-                    console.log("User signed in with ID:", appState.userId);
-                    await loadDataFromFirestore();
-                } else {
-                    throw new Error("No user signed in.");
-                }
-            } catch (error) {
-                console.error("Firebase Auth Error:", error);
-                showModal("Auth Error", "Could not sign in. Please refresh.");
-            }
-        }
-
-        async function loadDataFromFirestore() {
-            if (!appState.userId) return;
-
-            // Use the correct private path for user data
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-            
-            try {
-                const docSnap = await getDoc(userDocRef);
-
-                if (docSnap.exists()) {
-                    // --- Load existing user data ---
-                    const data = docSnap.data();
-                    console.log("Loaded data:", data);
-                    
-                    appState.points = data.points || 0;
-                    appState.claimedTasks = data.claimedTasks || [];
-                    appState.referrals = data.referrals || 0;
-                    appState.processingWithdrawal = data.processingWithdrawal || false;
-                    appState.task1Clicked = data.task1Clicked || false; // Load new state
-                    appState.task3Clicked = data.task3Clicked || false; // Load new state
-
-                    // --- Check daily ad task ---
-                    const today = new Date().toISOString().split('T')[0];
-                    const lastAdDate = data.lastAdWatchDate;
-                    
-                    if (lastAdDate === today) {
-                        appState.adsWatchedToday = data.adsWatchedToday || 0;
-                    } else {
-                        // It's a new day, reset daily count in Firestore
-                        appState.adsWatchedToday = 0;
-                        await updateDoc(userDocRef, {
-                            adsWatchedToday: 0,
-                            lastAdWatchDate: today
-                        });
-                    }
-                    appState.lastAdWatchDate = today;
-                    appState.adLimit = BASE_AD_LIMIT + (appState.referrals * AD_LIMIT_PER_REFERRAL);
-
-                } else {
-                    // --- Create new user document ---
-                    console.log("New user, creating document...");
-                    const today = new Date().toISOString().split('T')[0];
-                    const newUser = {
-                        points: 0,
-                        claimedTasks: [],
-                        referrals: 0,
-                        adsWatchedToday: 0,
-                        lastAdWatchDate: today,
-                        createdAt: serverTimestamp(),
-                        telegramFirstName: appState.firstName,
-                        processingWithdrawal: false,
-                        task1Clicked: false, // New state
-                        task3Clicked: false  // New state
-                    };
-                    await setDoc(userDocRef, newUser);
-                    Object.assign(appState, newUser); // Merge new user data into state
-                    appState.adLimit = BASE_AD_LIMIT; // Already set
-                }
-
-                updateUI(); // Update UI with loaded data
-                
-            } catch (error) {
-                console.error("Firestore Load Error:", error);
-                showModal("Load Error", "Could not load your data. Please try again.");
-            }
+        } catch (e) {
+            console.warn("Telegram SDK not ready, using default theme.");
         }
 
-        async function handleClaimTask(e) {
-            const button = e.target.closest('.claim-btn');
-            if (!button || button.disabled) return;
 
-            const taskCard = button.closest('.task-card');
-            if (!taskCard) return; // safety check
-            
-            const taskId = taskCard.dataset.taskId;
-            const reward = parseInt(taskCard.dataset.reward, 10);
+        // Wait for the full HTML document to be loaded before running the main script
+        document.addEventListener("DOMContentLoaded", () => {
+            // --- Configuration & State ---
 
-            // Special case for Monetag Ad Task
-            if (taskId === 'task-monetag') {
-                await handleMonetagTask(button, reward);
-                return;
-            }
-            
-            // Special case for Task 1 (Join Channel)
-            if (taskId === 'task-1') {
-                if (!appState.task1Clicked) {
-                    // --- This is the FIRST click ("Join") ---
-                    triggerHaptic('impact', 'light');
-                    tg.openTelegramLink(TELEGRAM_CHANNEL_LINK);
-                    
-                    // Update state and UI
-                    appState.task1Clicked = true;
-                    button.textContent = 'Claim';
-                    
-                    if (isDemoMode) {
-                        saveStateToLocalStorage();
-                    } else {
-                        // Save this click state to Firestore
-                        try {
-                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                            const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-                            await updateDoc(userDocRef, { task1Clicked: true });
-                        } catch (err) {
-                            console.error("Error saving task1Click:", err);
-                        }
-                    }
-                    return; // Stop here, wait for the 'Claim' click
-                }
-                // --- This is the SECOND click ("Claim") ---
-                // Proceed to the normal claim logic below
-            }
-            
-            // Special case for Task 3 (Follow on X)
-            if (taskId === 'task-3') {
-                if (!appState.task3Clicked) {
-                    // --- This is the FIRST click ("Follow") ---
-                    triggerHaptic('impact', 'light');
-                    tg.openLink(X_ACCOUNT_LINK);
-                    
-                    // Update state and UI
-                    appState.task3Clicked = true;
-                    button.textContent = 'Claim';
-                    
-                    if (isDemoMode) {
-                        saveStateToLocalStorage();
-                    } else {
-                        // Save this click state to Firestore
-                        try {
-                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                            const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-                            await updateDoc(userDocRef, { task3Clicked: true });
-                        } catch (err) {
-                            console.error("Error saving task3Click:", err);
-                        }
-                    }
-                    return; // Stop here, wait for the 'Claim' click
-                }
-                // --- This is the SECOND click ("Claim") ---
-                // Proceed to the normal claim logic below
-            }
-            
-            // --- Standard one-time task claim logic (for 'Claim' click on task-1 or task-3) ---
-            if (appState.claimedTasks.includes(taskId)) return; // Already claimed
-
-            triggerHaptic('notification', 'success');
-            button.disabled = true; // Disable immediately
-
-            if (isDemoMode) {
-                // --- DEMO MODE (localStorage) ---
-                appState.points += reward;
-                appState.claimedTasks.push(taskId);
-                saveStateToLocalStorage();
-                updateUI();
-                
-            } else {
-                // --- LIVE MODE (Firestore) ---
-                try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-                    
-                    // Use a transaction to safely update points and claimed tasks
-                    await runTransaction(db, async (transaction) => {
-                        const userDoc = await transaction.get(userDocRef);
-                        if (!userDoc.exists()) throw "Document does not exist!";
-                        
-                        const data = userDoc.data();
-                        const currentPoints = data.points || 0;
-                        const currentTasks = data.claimedTasks || [];
-
-                        // Server-side check
-                        if (currentTasks.includes(taskId)) {
-                            console.warn("Task already claimed on server.");
-                            return; // Don't grant reward
-                        }
-                        
-                        const newPoints = currentPoints + reward;
-                        const newClaimedTasks = [...currentTasks, taskId];
-
-                        transaction.update(userDocRef, { 
-                            points: newPoints,
-                            claimedTasks: newClaimedTasks
-                        });
-
-                        // Update local state *after* transaction is ready to commit
-                        appState.points = newPoints;
-                        appState.claimedTasks = newClaimedTasks;
-                    });
-                    
-                    console.log("One-time task claimed and saved to Firestore.");
-                    updateUI(); // Update UI after successful save
-                    
-                } catch (error) {
-                    console.error("One-time Task Save Error:", error);
-                    showModal("Save Error", "Could not save task. Please try again.");
-                    button.disabled = false; // Re-enable button on error
-                }
-            }
-        }
-        
-        async function handleMonetagTask(button, reward) {
-            // Check limit (local state is already up-to-date)
-            if (appState.adsWatchedToday >= appState.adLimit) {
-                showModal("Daily Limit", "You have reached your daily ad limit. Invite more friends to increase it!");
-                triggerHaptic('notification', 'error');
-                return;
-            }
-            
-            triggerHaptic('impact', 'light');
-            button.disabled = true; // Disable button
-            
-            // --- !!! MONETAG INTEGRATION POINT !!! ---
-            // 1. Paste your Monetag SDK <script> tag in the <head>
-            // 2. Call your Monetag Rewarded Ad function here.
-            
-            // Example:
-            // monetag.showRewardedAd().then(async (response) => {
-            //    if (response.success) {
-            //        console.log("Ad watched successfully!");
-            //        await saveAdTaskReward(reward);
-            //    } else {
-            //        console.log("Ad failed to show or was skipped.");
-            //        showModal("Ad Not Completed", "You must watch the full ad to get the reward.");
-            //        button.disabled = false; // Re-enable on failure
-            //    }
-            // });
-            
-            // --- START SIMULATION (Remove this in production) ---
-            console.log("Simulating ad watch...");
-            // Use a timeout to make the simulation feel real
-            setTimeout(async () => {
-                showModal("Ad Watched (Simulation)", `You earned ${reward} points!`);
-                await saveAdTaskReward(reward); // Simulate a successful watch
-            }, 1000); // 1 second delay
-            // --- END SIMULATION ---
-        }
-        
-        async function saveAdTaskReward(reward) {
-            if (isDemoMode) {
-                // --- DEMO MODE (localStorage) ---
-                appState.points += reward;
-                appState.adsWatchedToday += 1;
-                // lastAdWatchDate is already set
-                saveStateToLocalStorage();
-                updateUI();
-                triggerHaptic('notification', 'success');
-
-            } else {
-                // --- LIVE MODE (Firestore) ---
-                try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-
-                    // Use a transaction to safely update points and ad count
-                    await runTransaction(db, async (transaction) => {
-                        const userDoc = await transaction.get(userDocRef);
-                        if (!userDoc.exists()) throw "Document does not exist!";
-
-                        const data = userDoc.data();
-                        const today = new Date().toISOString().split('T')[0];
-                        let currentAdsWatched = data.adsWatchedToday || 0;
-                        
-                        // Double-check date in transaction
-                        if (data.lastAdWatchDate !== today) {
-                            currentAdsWatched = 0;
-                        }
-                        
-                        // Server-side ad limit check
-                        const serverReferrals = data.referrals || 0;
-                        const serverAdLimit = BASE_AD_LIMIT + (serverReferrals * AD_LIMIT_PER_REFERRAL);
-                        if (currentAdsWatched >= serverAdLimit) {
-                            throw new Error("Ad limit reached!"); // Use Error object
-                        }
-
-                        const newPoints = (data.points || 0) + reward;
-                        const newAdsWatched = currentAdsWatched + 1;
-
-                        transaction.update(userDocRef, {
-                            points: newPoints,
-                            adsWatchedToday: newAdsWatched,
-                            lastAdWatchDate: today
-                        });
-
-                        // Update local state
-                        appState.points = newPoints;
-                        appState.adsWatchedToday = newAdsWatched;
-                        appState.lastAdWatchDate = today;
-                        appState.adLimit = serverAdLimit; // Re-sync local limit
-                    });
-                    
-                    console.log("Ad task reward saved to Firestore.");
-                    triggerHaptic('notification', 'success');
-                    updateUI(); // Update UI after successful save
-
-                } catch (error) {
-                    console.error("Ad Task Save Error:", error);
-                    if (error.message === "Ad limit reached!") {
-                        showModal("Daily Limit", "You have reached your daily ad limit.");
-                    } else {
-                        showModal("Save Error", "Could not save ad reward. Please try again.");
-                    }
-                    updateUI(); // Re-sync UI in case of error
-                }
-            }
-        }
-
-        async function handleWithdraw() {
-            const walletAddress = walletAddressInput.value;
-            const koinToWithdraw = MIN_WITHDRAW_POINTS / POINTS_TO_KOIN_RATE;
-            
-            // Basic TRC20 address validation
-            if (walletAddress.length < 30 || !walletAddress.startsWith('T')) {
-                triggerHaptic('notification', 'error');
-                showModal("Invalid Address", "Please enter a valid TRC20 wallet address (it should start with 'T').");
-                return;
-            }
-
-            if (appState.points < MIN_WITHDRAW_POINTS) {
-                triggerHaptic('notification', 'error');
-                showModal("Error", "You do not have enough points to withdraw.");
-                return;
-            }
-            
-            if (appState.processingWithdrawal) {
-                triggerHaptic('notification', 'warning');
-                showModal("Error", "You already have a withdrawal in process.");
-                return;
-            }
-
-            triggerHaptic('notification', 'success');
-            withdrawBtn.disabled = true;
-            withdrawBtn.textContent = 'Processing...';
-
-            if (isDemoMode) {
-                // --- DEMO MODE (localStorage) ---
-                appState.points -= MIN_WITHDRAW_POINTS;
-                appState.processingWithdrawal = true; // Simulates the lock
-                saveStateToLocalStorage();
-                updateUI();
-                walletAddressInput.value = '';
-                showModal("Withdrawal Requested (Demo)", `Your request to withdraw ${koinToWithdraw} $KKoin has been submitted. In a real app, this would be processed by an admin.`);
-                
-                // In demo, unlock it after a few seconds
-                setTimeout(() => {
-                    appState.processingWithdrawal = false;
-                    saveStateToLocalStorage();
-                    updateUI();
-                }, 5000);
-
-            } else {
-                // --- LIVE MODE (Firestore) ---
-                try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-                    
-                    // Use a transaction to create the request and deduct points
-                    await runTransaction(db, async (transaction) => {
-                        const userDoc = await transaction.get(userDocRef);
-                        if (!userDoc.exists()) throw "Document does not exist!";
-
-                        const data = userDoc.data();
-                        const currentPoints = data.points || 0;
-                        if (currentPoints < MIN_WITHDRAW_POINTS) throw new Error("Not enough points!");
-                        if (data.processingWithdrawal) throw new Error("A withdrawal is already in progress.");
-
-                        // 1. Create the withdrawal request in the PUBLIC collection
-                        const withdrawalRef = collection(db, `artifacts/${appId}/public/data/withdrawalRequests`);
-                        await addDoc(withdrawalRef, {
-                            userId: appState.userId,
-                            telegramFirstName: appState.firstName,
-                            pointsToWithdraw: MIN_WITHDRAW_POINTS,
-                            koinToWithdraw: koinToWithdraw,
-                            walletAddress: walletAddress,
-                            status: "pending",
-                            requestedAt: serverTimestamp()
-                        });
-
-                        // 2. Update the user's private document
-                        const newPoints = currentPoints - MIN_WITHDRAW_POINTS;
-                        transaction.update(userDocRef, {
-                            points: newPoints,
-                            processingWithdrawal: true // Lock user from making another request
-                        });
-
-                        // 3. Update local state
-                        appState.points = newPoints;
-                        appState.processingWithdrawal = true;
-                    });
-                    
-                    console.log("Withdrawal request saved to Firestore.");
-                    updateUI();
-                    walletAddressInput.value = '';
-                    showModal("Withdrawal Requested!", `Your request to withdraw ${koinToWithdraw} $KKoin has been submitted. It will be processed soon.`);
-                    
-                } catch (error) {
-                    console.error("Withdrawal Error:", error);
-                    showModal("Withdrawal Error", `An error occurred: ${error.message}`);
-                    updateUI(); // Re-sync UI
-                }
-            }
-        }
-
-        async function handleSimulateReferral() {
-            triggerHaptic('impact', 'heavy');
-
-            if (isDemoMode) {
-                // --- DEMO MODE (localStorage) ---
-                appState.points += REFERRAL_POINT_BONUS;
-                appState.referrals += 1;
-                appState.adLimit = BASE_AD_LIMIT + (appState.referrals * AD_LIMIT_PER_REFERRAL);
-                saveStateToLocalStorage();
-                updateUI();
-                showModal("Referral Added!", `You earned ${REFERRAL_POINT_BONUS} points! Your new daily ad limit is ${appState.adLimit}.`);
-
-            } else {
-                // --- LIVE MODE (Firestore) ---
-                try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-                    
-                    // Use a transaction to safely update referrals and points
-                    await runTransaction(db, async (transaction) => {
-                        const userDoc = await transaction.get(userDocRef);
-                        if (!userDoc.exists()) throw "Document does not exist!";
-
-                        const data = userDoc.data();
-                        const currentPoints = data.points || 0;
-                        const newPoints = currentPoints + REFERRAL_POINT_BONUS;
-                        const newReferrals = (data.referrals || 0) + 1;
-                        const newAdLimit = BASE_AD_LIMIT + (newReferrals * AD_LIMIT_PER_REFERRAL);
-
-                        transaction.update(userDocRef, {
-                            points: newPoints,
-                            referrals: newReferrals
-                        });
-
-                        // Update local state
-                        appState.points = newPoints;
-                        appState.referrals = newReferrals;
-                        appState.adLimit = newAdLimit;
-                    });
-                    
-                    console.log("Referral simulation saved to Firestore.");
-                    updateUI();
-                    showModal("Referral Added!", `You earned ${REFERRAL_POINT_BONUS} points! Your new daily ad limit is ${appState.adLimit}.`);
-
-                } catch (error) {
-                    console.error("Referral Sim Save Error:", error);
-                    showModal("Save Error", "Could not save referral. Please try again.");
-                }
-            }
-        }
-
-        // --- Main App Initialization ---
-        // We must wait for the DOM to be ready AND the Telegram SDK to be ready.
-        
-        async function main() {
-            // --- Define All DOM Elements ---
-            pointsDisplay = document.getElementById('points-display');
-            koinBalanceDisplay = document.getElementById('koin-balance-display');
-            welcomeMessage = document.getElementById('welcome-message');
-            pages = document.querySelectorAll('.page');
-            navButtons = {
-                tasks: document.getElementById('nav-tasks'),
-                friends: document.getElementById('nav-friends'),
-                wallet: document.getElementById('nav-wallet')
+            // App configuration
+            const MIN_WITHDRAW_POINTS = 100000;
+            const POINTS_PER_KOIN = 1000;
+            const KOIN_PER_DOLLAR = 100;
+            const REFERRAL_POINT_BONUS = 250;
+            const REFERRAL_AD_BONUS = 5;
+            const BASE_AD_LIMIT = 10;
+            const TASK_POINTS = {
+                "task-1": 100, // Join Telegram
+                "task-3": 100, // Follow X
+                "ad-task": 50  // Watch Ad
             };
-            adTaskBtn = document.getElementById('ad-task-btn');
-            inviteBtnHome = document.getElementById('invite-btn-home');
-            copyLinkBtn = document.getElementById('copy-link-btn');
-            copySuccessMsg = document.getElementById('copy-success-msg');
-            simulateReferralBtn = document.getElementById('simulate-referral-btn');
-            totalReferralsDisplay = document.getElementById('total-referrals-display');
-            referralBonusDisplay = document.getElementById('referral-bonus-display');
-            totalReferralPointsDisplay = document.getElementById('total-referral-points-display');
-            walletPointsDisplay = document.getElementById('wallet-points-display');
-            walletKoinDisplay = document.getElementById('wallet-koin-display');
-            progressBar = document.getElementById('progress-bar');
-            progressText = document.getElementById('progress-text');
-            walletAddressInput = document.getElementById('wallet-address');
-            withdrawBtn = document.getElementById('withdraw-btn');
-            modal = document.getElementById('custom-modal');
-            modalTitle = document.getElementById('modal-title');
-            modalMessage = document.getElementById('modal-message');
-            modalOkBtn = document.getElementById('modal-ok-btn');
-            
-            // --- This is the main startup logic ---
-            // This function runs *after* Firebase init is attempted.
-            
-            if (isDemoMode) {
-                // Show the simulation button only in demo mode
-                if (simulateReferralBtn) {
-                    simulateReferralBtn.style.display = 'block';
-                }
-                
-                // Check if imports or init failed and show modal
-                if (!initializeApp) {
-                    // This means Firebase SDKs failed to import
-                    showModal("Load Error", "Could not load cloud features. App is in offline mode.");
-                } else if (!app && YOUR_FIREBASE_CONFIG) {
-                     // This means SDKs loaded, but init failed (bad config)
-                     showModal("Fatal Error", "Could not initialize Firebase (check config). App is in offline mode.");
-                } else if (!YOUR_FIREBASE_CONFIG) {
-                    // This is the normal, expected demo mode
-                    // showModal("Demo Mode", "This app is in demo mode. All data is temporary.");
-                }
-                
-                loadStateFromLocalStorage();
-                updateUI();
-            } else {
-                // This is live mode
-                signInUser(); // This will load data from Firestore and then update UI
-            }
 
-            // --- ALL EVENT LISTENERS ARE ATTACHED HERE ---
+            // App state (this is our user's data)
+            let appState = {
+                userId: null,
+                points: 0,
+                claimedTasks: [],
+                referrals: 0,
+                adsWatchedToday: 0,
+                lastAdWatchDate: null,
+                task1Clicked: false, // For 2-step "Join"
+                task3Clicked: false, // For 2-step "Follow"
+                processingWithdrawal: false,
+            };
 
-            // Page navigation
-            Object.values(navButtons).forEach(button => {
-                if (button) { // Safety check
-                    button.addEventListener('click', () => {
-                        switchPage(button.dataset.page);
-                    });
-                }
-            });
+            // Firebase and App Mode
+            let db, auth;
+            // Check if a real config object was provided (not null and has keys)
+            let isDemoMode = !YOUR_FIREBASE_CONFIG || Object.keys(YOUR_FIREBASE_CONFIG).length === 0;
+            let isFirebaseInitialized = false;
 
-            // Task claiming
-            const tasksPage = document.getElementById('tasks-page');
-            if (tasksPage) {
-                tasksPage.addEventListener('click', (e) => {
-                    const targetButton = e.target.closest('.claim-btn');
-                    if (targetButton) {
-                        handleClaimTask(e);
+            // HTML Element cache
+            const elements = {
+                pointsDisplay: document.getElementById("points-display"),
+                userGreeting: document.getElementById("user-greeting"),
+                pages: {
+                    tasks: document.getElementById("tasks-page"),
+                    friends: document.getElementById("friends-page"),
+                    wallet: document.getElementById("wallet-page"),
+                },
+                navButtons: {
+                    tasks: document.querySelector('.nav-button[data-page="tasks-page"]'),
+                    friends: document.querySelector('.nav-button[data-page="friends-page"]'),
+                    wallet: document.querySelector('.nav-button[data-page="wallet-page"]'),
+                },
+                taskButtons: {
+                    task1: document.getElementById("task-1-btn"),
+                    task3: document.getElementById("task-3-btn"),
+                    adTask: document.getElementById("ad-task-btn"),
+                },
+                inviteCardBtn: document.getElementById("invite-card-btn"),
+                inviteBtnTasks: document.getElementById("invite-btn-tasks"),
+                friendsTotal: document.getElementById("friends-total"),
+                friendsBonusPer: document.getElementById("friends-bonus-per"),
+                friendsTotalBonus: document.getElementById("friends-total-bonus"),
+                openShareBtn: document.getElementById("open-share-btn"),
+                simulateReferralBtn: document.getElementById("simulate-referral-btn"),
+                walletKoinBalance: document.getElementById("wallet-koin-balance"),
+                walletUsdBalance: document.getElementById("wallet-usd-balance"),
+                walletProgressBar: document.getElementById("wallet-progress-bar"),
+                walletProgressLabel: document.getElementById("wallet-progress-label"),
+                walletAddressInput: document.getElementById("wallet-address-input"),
+                withdrawButton: document.getElementById("withdraw-button"),
+                messageBox: document.getElementById("message-box"),
+                messageBoxTitle: document.getElementById("message-box-title"),
+                messageBoxText: document.getElementById("message-box-text"),
+                messageBoxClose: document.getElementById("message-box-close"),
+                shareModal: document.getElementById("share-modal"),
+                shareMessageText: document.getElementById("share-message-text"),
+                copyReferralBtn: document.getElementById("copy-referral-btn"),
+            };
+
+            // Telegram SDK instance
+            const tg = window.Telegram.WebApp;
+
+            // --- Main App Initialization ---
+
+            /**
+             * The main function that starts the app.
+             * It determines the mode (Demo vs. Live) and loads the user data.
+             */
+            async function main() {
+                try {
+                    // --- 1. Initialize Telegram & User ---
+                    // This now runs first to ensure tgUser is available
+                    let tgUser;
+                    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                        tgUser = tg.initDataUnsafe.user;
+                        appState.userId = tgUser.id.toString();
+                        elements.userGreeting.textContent = `Welcome, ${tgUser.first_name || 'User'}!`;
+                        tg.ready();
+                        tg.expand();
+                    } else {
+                        // Fallback for demo mode outside of Telegram
+                        appState.userId = 'demo-user-123';
+                        elements.userGreeting.textContent = `Welcome, Demo User!`;
+                        console.warn("Telegram user data not found. Running in demo mode.");
                     }
-                    
-                    const inviteButton = e.target.closest('#invite-btn-home');
-                    if (inviteButton) {
-                         switchPage('friends-page');
+
+                    // --- 2. Determine App Mode & Init Firebase ---
+                    if (isDemoMode) {
+                        console.warn("Firebase config is missing. Running in DEMO MODE.");
+                    } else {
+                        // LIVE MODE
+                        initializeApp(YOUR_FIREBASE_CONFIG);
+                        auth = firebase.auth();
+                        db = firebase.firestore();
+                        isFirebaseInitialized = true;
                     }
-                });
+
+                    // --- 3. Load Data ---
+                    // This will either load from localStorage (Demo) or Firestore (Live)
+                    await loadData();
+                    checkAdReset(); // Reset ad count if it's a new day
+                    updateUI(); // Initial UI render
+
+                    // --- 4. Attach All Event Listeners ---
+                    setupEventListeners();
+
+                } catch (error) {
+                    console.error("Critical error during app initialization:", error);
+                    showMessage("App Error", "Could not start the app. Please refresh.");
+                }
             }
 
-            // Friends page
-            if (copyLinkBtn) {
-                copyLinkBtn.addEventListener('click', () => {
-                    triggerHaptic('impact', 'light');
-                    // !! IMPORTANT: Replace with your bot's username
-                    const inviteLink = `https://t.me/YOUR_BOT_USERNAME_HERE?start=${appState.userId || 'demo'}`;
-                    
-                    // Use fallback for clipboard API
-                    try {
-                        const textArea = document.createElement('textarea');
-                        textArea.value = inviteLink;
-                        document.body.appendChild(textArea);
-                        textArea.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(textArea);
-                        
-                        copySuccessMsg.style.display = 'block';
-                        setTimeout(() => {
-                            copySuccessMsg.style.display = 'none';
-                        }, 2000);
-
-                    } catch (err) {
-                        console.error('Failed to copy: ', err);
-                        showModal("Error", "Could not copy link. Please try again.");
-                    }
-                });
+            /**
+             * Initializes the Firebase app.
+             * @param {object} config - The Firebase config object.
+             */
+            function initializeApp(config) {
+                try {
+                    firebase.initializeApp(config);
+                } catch (e) {
+                    console.error("Firebase initialization error:", e);
+                }
             }
 
-            if (simulateReferralBtn) {
-                simulateReferralBtn.addEventListener('click', handleSimulateReferral);
-            }
 
-            // Wallet page
-            if (withdrawBtn) {
-                withdrawBtn.addEventListener('click', handleWithdraw);
-            }
-            
-            // Modal OK button
-            if (modalOkBtn) {
-                modalOkBtn.addEventListener('click', () => {
-                    modal.style.display = 'none';
-                });
-            }
-        }
+            // --- Data Management (Demo vs. Live) ---
 
-        // --- STARTUP SEQUENCE ---
-        
-        // This ensures the DOM is ready before we do anything
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Initialize Telegram SDK
-            try {
-                tg = window.Telegram.WebApp;
-                if (tg && tg.ready) {
-                    tg.ready();
-                    tg.expand();
-                    tg.setHeaderColor("var(--tg-theme-bg-color)");
-                    tg.setBackgroundColor("var(--tg-theme-bg-color)");
+            /**
+             * Loads user data from either Firestore (Live) or localStorage (Demo).
+             */
+            async function loadData() {
+                if (isDemoMode) {
+                    loadDataFromLocalStorage();
                 } else {
-                    console.warn("Telegram SDK not found or 'ready' function missing!");
-                    // We can still run in demo mode in a normal browser
-                    // Create a fallback user object for browser testing
-                    if (!window.Telegram) {
-                        window.Telegram = {
-                            WebApp: {
-                                initDataUnsafe: {
-                                    user: { id: 12345, first_name: 'Browser' }
-                                },
-                                HapticFeedback: {
-                                    impactOccurred: () => {},
-                                    notificationOccurred: () => {},
-                                    selectionChanged: () => {},
-                                },
-                                openLink: (url) => window.open(url, '_blank'),
-                                openTelegramLink: (url) => window.open(url, '_blank'),
-                            }
-                        };
-                        tg = window.Telegram.WebApp;
-                    }
-                }
-            } catch (e) {
-                console.error("Error initializing Telegram SDK:", e);
-                // Create a fallback user object if SDK init fails
-                if (!window.Telegram) {
-                    window.Telegram = {
-                        WebApp: {
-                            initDataUnsafe: {
-                                user: { id: 12345, first_name: 'Browser' }
-                            },
-                            HapticFeedback: {
-                                impactOccurred: () => {},
-                                notificationOccurred: () => {},
-                                selectionChanged: () => {},
-                            },
-                            openLink: (url) => window.open(url, '_blank'),
-                            openTelegramLink: (url) => window.open(url, '_blank'),
-                        }
-                    };
-                    tg = window.Telegram.WebApp;
+                    await signInUserAnonymously();
+                    await loadDataFromFirestore();
                 }
             }
-            
-            // 2. Attempt to initialize Firebase (this will set isDemoMode)
-            await initializeFirebase();
-            
-            // 3. Run the main app logic
-            // (This will either load from localStorage or from Firestore)
+
+            /**
+             * Signs in the user to Firebase to authorize database actions.
+             */
+            async function signInUserAnonymously() {
+                if (!isFirebaseInitialized || !auth) return;
+                try {
+                    await auth.signInAnonymously();
+                } catch (error) {
+                    console.error("Firebase sign-in error:", error);
+                    showMessage("Auth Error", "Could not sign in. Please refresh.");
+                    throw error; // Stop execution if we can't sign in
+                }
+            }
+
+            /**
+             * Gets the Firestore document reference for the current user.
+             */
+            function getUserDocRef() {
+                // Ensure we have a valid App ID, defaulting if necessary
+                const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
+                return db.collection('artifacts').doc(appId)
+                    .collection('users').doc(appState.userId)
+                    .collection('data').doc('profile');
+            }
+
+            /**
+             * Loads user data from Firestore. Creates a new user if one doesn't exist.
+             */
+            async function loadDataFromFirestore() {
+                if (!isFirebaseInitialized || !db) return;
+
+                const userDocRef = getUserDocRef();
+                try {
+                    const doc = await userDocRef.get();
+                    if (doc.exists) {
+                        // User exists, load their data
+                        const data = doc.data();
+                        // Merge server data with local state, preferring server data
+                        appState = {
+                            ...appState,
+                            ...data,
+                            claimedTasks: data.claimedTasks || [],
+                        };
+                    } else {
+                        // New user, create their document in Firestore
+                        await userDocRef.set(appState);
+                    }
+                } catch (error) {
+                    console.error("Error loading data from Firestore:", error);
+                    showMessage("Database Error", "Could not load your data.");
+                }
+            }
+
+            /**
+             * Saves the entire app state to Firestore.
+             */
+            async function saveDataToFirestore() {
+                if (isDemoMode || !isFirebaseInitialized || !db) return;
+
+                const userDocRef = getUserDocRef();
+                try {
+                    // We use 'merge: true' to only update fields, not overwrite
+                    await userDocRef.set(appState, {
+                        merge: true
+                    });
+                } catch (error) {
+                    console.error("Error saving data to Firestore:", error);
+                }
+            }
+
+            /**
+             * Loads data from localStorage (Demo Mode only).
+             */
+            function loadDataFromLocalStorage() {
+                const savedState = localStorage.getItem(`kkoinState_${appState.userId}`);
+                if (savedState) {
+                    appState = JSON.parse(savedState);
+                }
+            }
+
+            /**
+            * Saves data to localStorage (Demo Mode only).
+            */
+            function saveDataToLocalStorage() {
+                localStorage.setItem(`kkoinState_${appState.userId}`, JSON.stringify(appState));
+            }
+
+            /**
+             * Smart-save function. Saves to Firestore or localStorage based on mode.
+             */
+            function saveData() {
+                if (isDemoMode) {
+                    saveDataToLocalStorage();
+                } else {
+                    saveDataToFirestore();
+                }
+            }
+
+
+            // --- UI & Event Handlers ---
+
+            /**
+             * Attaches all click listeners to the UI elements.
+             */
+            function setupEventListeners() {
+                // Navigation bar
+                Object.values(elements.navButtons).forEach(button => {
+                    button.addEventListener('click', () => {
+                        const pageId = button.dataset.page;
+                        navigateTo(pageId);
+                    });
+                });
+
+                // Task buttons
+                elements.taskButtons.task1.addEventListener('click', () => handleClaimTask('task-1'));
+                elements.taskButtons.task3.addEventListener('click', () => handleClaimTask('task-3'));
+                elements.taskButtons.adTask.addEventListener('click', handleMonetagTask);
+
+                // Invite buttons
+                elements.inviteCardBtn.addEventListener('click', showShareModal);
+                elements.inviteBtnTasks.addEventListener('click', showShareModal);
+
+                // Friends page
+                elements.openShareBtn.addEventListener('click', showShareModal);
+                elements.simulateReferralBtn.addEventListener('click', simulateNewReferral);
+
+                // Wallet page
+                elements.withdrawButton.addEventListener('click', handleWithdraw);
+                elements.walletAddressInput.addEventListener('input', updateUI);
+
+                // Message box
+                elements.messageBoxClose.addEventListener('click', hideMessageBox);
+
+                // Share Modal
+                elements.shareModal.addEventListener('click', (e) => {
+                    if (e.target === elements.shareModal) {
+                        hideShareModal();
+                    }
+                });
+                document.getElementById('share-whatsapp').addEventListener('click', () => share('whatsapp'));
+                document.getElementById('share-twitter').addEventListener('click', () => share('twitter'));
+                document.getElementById('share-facebook').addEventListener('click', () => share('facebook'));
+                document.getElementById('share-linkedin').addEventListener('click', () => share('linkedin'));
+                document.getElementById('share-reddit').addEventListener('click', () => share('reddit'));
+                elements.copyReferralBtn.addEventListener('click', copyReferralLink);
+            }
+
+            /**
+             * Updates all visible UI elements to reflect the current appState.
+             */
+            function updateUI() {
+                // Update header points
+                elements.pointsDisplay.textContent = Math.floor(appState.points).toLocaleString();
+
+                // Update task buttons
+                updateTaskButtons();
+
+                // Update Friends page
+                elements.friendsTotal.textContent = appState.referrals;
+                elements.friendsBonusPer.textContent = REFERRAL_POINT_BONUS;
+                elements.friendsTotalBonus.textContent = (appState.referrals * REFERRAL_POINT_BONUS).toLocaleString();
+
+                // Update Wallet page
+                const koinBalance = Math.floor(appState.points / POINTS_PER_KOIN);
+                const usdBalance = (koinBalance / KOIN_PER_DOLLAR).toFixed(2);
+                elements.walletKoinBalance.textContent = `${koinBalance.toLocaleString()} $KKoin`;
+                elements.walletUsdBalance.textContent = `≈ $${usdBalance} USD`;
+
+                // Update progress bar
+                const progress = Math.min((appState.points / MIN_WITHDRAW_POINTS) * 100, 100);
+                elements.walletProgressBar.style.width = `${progress}%`;
+                elements.walletProgressLabel.textContent =
+                    `${Math.floor(appState.points).toLocaleString()} / ${MIN_WITHDRAW_POINTS.toLocaleString()}`;
+
+                // Update withdraw button
+                const hasEnoughPoints = appState.points >= MIN_WITHDRAW_POINTS;
+                const hasWalletAddress = elements.walletAddressInput.value.trim().length > 10;
+                const isProcessing = appState.processingWithdrawal;
+
+                if (isProcessing) {
+                    elements.withdrawButton.textContent = "Withdrawal Processing...";
+                    elements.withdrawButton.disabled = true;
+                } else if (hasEnoughPoints && hasWalletAddress) {
+                    elements.withdrawButton.textContent = "Withdraw";
+                    elements.withdrawButton.disabled = false;
+                } else {
+                    elements.withdrawButton.textContent = "Withdraw";
+                    elements.withdrawButton.disabled = true;
+                }
+
+                // Show/Hide Demo button
+                if (isDemoMode) {
+                    elements.simulateReferralBtn.style.display = 'block';
+                }
+            }
+
+            /**
+             * Updates the state and appearance of all task buttons.
+             */
+            function updateTaskButtons() {
+                // Task 1: Join Channel
+                if (appState.claimedTasks.includes('task-1')) {
+                    elements.taskButtons.task1.textContent = 'Done';
+                    elements.taskButtons.task1.disabled = true;
+                } else if (appState.task1Clicked) {
+                    elements.taskButtons.task1.textContent = 'Claim';
+                    elements.taskButtons.task1.classList.add('claimable');
+                } else {
+                    elements.taskButtons.task1.textContent = 'Join';
+                    elements.taskButtons.task1.classList.remove('claimable');
+                    elements.taskButtons.task1.disabled = false;
+                }
+
+                // Task 3: Follow X
+                if (appState.claimedTasks.includes('task-3')) {
+                    elements.taskButtons.task3.textContent = 'Done';
+                    elements.taskButtons.task3.disabled = true;
+                } else if (appState.task3Clicked) {
+                    elements.taskButtons.task3.textContent = 'Claim';
+                    elements.taskButtons.task3.classList.add('claimable');
+                } else {
+                    elements.taskButtons.task3.textContent = 'Follow';
+                    elements.taskButtons.task3.classList.remove('claimable');
+                    elements.taskButtons.task3.disabled = false;
+                }
+
+                // Ad Task
+                const adLimit = BASE_AD_LIMIT + (appState.referrals * REFERRAL_AD_BONUS);
+                const adsWatched = appState.adsWatchedToday;
+                elements.taskButtons.adTask.textContent = `Watch (${adsWatched}/${adLimit})`;
+                if (adsWatched >= adLimit) {
+                    elements.taskButtons.adTask.textContent = `Limit Reached`;
+                    elements.taskButtons.adTask.disabled = true;
+                } else {
+                    elements.taskButtons.adTask.disabled = false;
+                }
+            }
+
+            /**
+             * Handles navigation between the main pages.
+             * @param {string} pageId - The ID of the page to show.
+             */
+            function navigateTo(pageId) {
+                // Hide all pages
+                Object.values(elements.pages).forEach(page => page.classList.remove('active'));
+                // Deactivate all nav buttons
+                Object.values(elements.navButtons).forEach(btn => btn.classList.remove('active'));
+
+                // Show the target page
+                const targetPage = elements.pages[pageId.replace('-page', '')];
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                }
+
+                // Activate the target nav button
+                const targetButton = elements.navButtons[pageId.replace('-page', '')];
+                if (targetButton) {
+                    targetButton.classList.add('active');
+                }
+            }
+
+            /**
+             * Checks if the ad limit needs to be reset (if it's a new day).
+             */
+            function checkAdReset() {
+                const today = new Date().toDateString();
+                if (appState.lastAdWatchDate !== today) {
+                    appState.adsWatchedToday = 0;
+                    appState.lastAdWatchDate = today;
+                    saveData();
+                }
+            }
+
+            /**
+             * Handles claiming a one-time task (Join Telegram, Follow X).
+             * @param {string} taskId - The ID of the task being claimed.
+             */
+            function handleClaimTask(taskId) {
+                if (appState.claimedTasks.includes(taskId)) return; // Already claimed
+
+                // Specific logic for 2-step tasks
+                if (taskId === 'task-1') {
+                    if (!appState.task1Clicked) {
+                        // Step 1: Join
+                        appState.task1Clicked = true;
+                        tg.openLink('https://t.me/kkoinearner');
+                    } else {
+                        // Step 2: Claim
+                        addPoints(TASK_POINTS[taskId], taskId);
+                    }
+                } else if (taskId === 'task-3') {
+                    if (!appState.task3Clicked) {
+                        // Step 1: Follow
+                        appState.task3Clicked = true;
+                        tg.openLink('https://x.com/kkoinearner');
+                    } else {
+                        // Step 2: Claim
+                        addPoints(TASK_POINTS[taskId], taskId);
+                    }
+                }
+
+                // Vibrate on interaction
+                tg.HapticFeedback.impactOccurred('light');
+
+                saveData();
+                updateUI();
+            }
+
+            /**
+             * Handles the "Watch Ad" task.
+             */
+            function handleMonetagTask() {
+                const adLimit = BASE_AD_LIMIT + (appState.referrals * REFERRAL_AD_BONUS);
+                if (appState.adsWatchedToday >= adLimit) {
+                    showMessage("Limit Reached", "You've watched all your ads for today. Invite more friends to increase your limit!");
+                    return;
+                }
+
+                // Vibrate
+                tg.HapticFeedback.impactOccurred('light');
+
+                // --- MONETAG INTEGRATION POINT ---
+                // This is where you would call your Monetag Rewarded Ad.
+                // For now, we'll just simulate a successful ad watch.
+
+                // **!! REPLACE THIS with your Monetag code !!**
+                // Example: monetag.showRewardedAd().then(() => { ... });
+                simulateSuccessfulAdWatch();
+            }
+
+            /**
+             * Simulates a successful ad watch (for Demo Mode or until Monetag is added).
+             */
+            function simulateSuccessfulAdWatch() {
+                appState.adsWatchedToday += 1;
+                addPoints(TASK_POINTS['ad-task']);
+                showMessage("Ad Watched!", `You earned ${TASK_POINTS['ad-task']} $KKoin!`);
+                saveData();
+                updateUI();
+            }
+
+            /**
+             * Handles a new referral (for Demo Mode).
+             */
+            function simulateNewReferral() {
+                appState.referrals += 1;
+                addPoints(REFERRAL_POINT_BONUS);
+                showMessage("New Referral!", `A friend joined! You earned ${REFERRAL_POINT_BONUS} $KKoin and +${REFERRAL_AD_BONUS} daily ad slots!`);
+
+                // Vibrate
+                tg.HapticFeedback.notificationOccurred('success');
+
+                saveData();
+                updateUI();
+            }
+
+            /**
+             * Adds points to the user's total and optionally claims a task.
+             * @param {number} amount - The number of points to add.
+             * @param {string} [taskIdToClaim] - The ID of the task to mark as claimed.
+             */
+            function addPoints(amount, taskIdToClaim = null) {
+                appState.points += amount;
+                if (taskIdToClaim) {
+                    appState.claimedTasks.push(taskIdToClaim);
+                }
+            }
+
+            /**
+             * Handles the withdrawal process.
+             */
+            async function handleWithdraw() {
+                const walletAddress = elements.walletAddressInput.value.trim();
+
+                // Final client-side checks
+                if (appState.points < MIN_WITHDRAW_POINTS) {
+                    showMessage("Not Enough Points", "You need at least 100,000 points to withdraw.");
+                    return;
+                }
+                if (walletAddress.length < 20) { // Basic check for a valid-ish address
+                    showMessage("Invalid Address", "Please enter a valid TRC20 wallet address.");
+                    return;
+                }
+                if (appState.processingWithdrawal) {
+                    showMessage("Processing", "Your previous withdrawal is still being processed.");
+                    return;
+                }
+
+                // Vibrate
+                tg.HapticFeedback.impactOccurred('heavy');
+
+                // Set local state to processing
+                appState.processingWithdrawal = true;
+                const pointsToWithdraw = MIN_WITHDRAW_POINTS;
+                const koinToWithdraw = pointsToWithdraw / POINTS_PER_KOIN;
+                appState.points -= pointsToWithdraw;
+
+                // Create the request object
+                const request = {
+                    userId: appState.userId,
+                    walletAddress: walletAddress,
+                    pointsToWithdraw: pointsToWithdraw,
+                    koinToWithdraw: koinToWithdraw,
+                    status: "pending",
+                    requestedAt: new Date().toISOString(),
+                };
+
+                if (isDemoMode) {
+                    // --- DEMO MODE WITHDRAW ---
+                    console.log("DEMO MODE: Creating withdrawal request:", request);
+                    // Simulate success
+                    setTimeout(() => {
+                        appState.processingWithdrawal = false;
+                        showMessage("Withdrawal Requested!", `Your request for ${koinToWithdraw} $KKoin has been submitted. It will be processed within 24 hours.`);
+                        saveData();
+                        updateUI();
+                    }, 1000);
+                } else {
+                    // --- LIVE MODE WITHDRAW ---
+                    try {
+                        const appId = (typeof __app_id !== 'undefined' && __app_id) ? __app_id : 'default-app-id';
+                        // Create a new document in the withdrawalRequests collection
+                        await db.collection('artifacts').doc(appId)
+                            .collection('public').doc('data')
+                            .collection('withdrawalRequests').add(request);
+
+                        // Save the user's new (lower) point total and processing status
+                        await saveDataToFirestore();
+
+                        showMessage("Withdrawal Requested!", `Your request for ${koinToWithdraw} $KKoin has been submitted. It will be processed within 24 hours.`);
+                    } catch (error) {
+                        console.error("Error creating withdrawal request:", error);
+                        // Roll back the changes if the request failed
+                        appState.processingWithdrawal = false;
+                        appState.points += pointsToWithdraw;
+                        showMessage("Error", "Could not submit your request. Please try again.");
+                    }
+                }
+
+                saveData();
+                updateUI();
+            }
+
+            /**
+             * Shows the custom message box.
+             * @param {string} title - The title of the message.
+             * @param {string} text - The body text of the message.
+             */
+            function showMessage(title, text) {
+                elements.messageBoxTitle.textContent = title;
+                elements.messageBoxText.textContent = text;
+                elements.messageBox.style.display = 'flex';
+            }
+
+            /**
+             * Hides the custom message box.
+             */
+            function hideMessageBox() {
+                elements.messageBox.style.display = 'none';
+            }
+
+
+            // --- Share Modal Logic ---
+
+            /**
+             * Generates the user's unique referral link.
+             * @returns {string} The referral link.
+             */
+            function getReferralLink() {
+                const botUsername = (YOUR_BOT_USERNAME_HERE === "YOUR_BOT_USERNAME_HERE" || !YOUR_BOT_USERNAME_HERE) ?
+                    "KkoinEarnerBot" : // Fallback
+                    YOUR_BOT_USERNAME_HERE;
+
+                // A real app would get the user ID from the *live* app
+                const userId = isDemoMode ? "DEMO_USER" : appState.userId;
+                return `https://t.me/${botUsername}?start=${userId}`;
+            }
+
+            /**
+             * Generates the pre-filled text for sharing.
+             * @returns {string} The share text.
+             */
+            function getShareText() {
+                const link = getReferralLink();
+                return `🔥 You've got to check this out!\n\nI'm earning crypto tokens ($KKoin) just for doing simple tasks in this new Telegram app. It's free to join!\n\nUse my link to sign up and get a bonus:\n${link}`;
+            }
+
+            /**
+             * Shows the share modal pop-up.
+             */
+            function showShareModal() {
+                // Vibrate
+                try { tg.HapticFeedback.impactOccurred('light'); } catch (e) { }
+
+                // Update the text in the modal
+                elements.shareMessageText.textContent = getShareText();
+                elements.shareModal.classList.add('active');
+            }
+
+            /**
+             * Hides the share modal pop-up.
+             */
+            function hideShareModal() {
+                elements.shareModal.classList.remove('active');
+            }
+
+            /**
+             * Copies the referral link to the clipboard.
+             */
+            function copyReferralLink() {
+                const link = getReferralLink();
+                try {
+                    // Use new clipboard API if available
+                    navigator.clipboard.writeText(link).then(() => {
+                        showMessage("Copied!", "Your invite link has been copied to the clipboard.");
+                    }).catch(() => {
+                        // Fallback for older browsers/webviews
+                        legacyCopy(link);
+                    });
+                } catch (e) {
+                    legacyCopy(link);
+                }
+                try { tg.HapticFeedback.notificationOccurred('success'); } catch (e) { }
+            }
+
+            function legacyCopy(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed"; // Avoid scrolling
+                textArea.style.opacity = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showMessage("Copied!", "Your invite link has been copied to the clipboard.");
+                } catch (err) {
+                    showMessage("Oops!", "Could not copy the link. Please copy it from the text box.");
+                }
+                document.body.removeChild(textArea);
+            }
+
+            /**
+             * Handles sharing to a specific social platform.
+             * @param {string} platform - 'whatsapp', 'twitter', 'facebook', etc.
+             */
+            function share(platform) {
+                const text = getShareText();
+                const url = getReferralLink();
+                let shareUrl = '';
+
+                switch (platform) {
+                    case 'whatsapp':
+                        shareUrl = `httpshttps://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                        break;
+                    case 'twitter':
+                        shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                        break;
+                    case 'facebook':
+                        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+                        break;
+                    case 'linkedin':
+                        shareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(url)}&title=${encodeURIComponent("Join me on Kkoin Earner!")}&summary=${encodeURIComponent(text)}`;
+                        break;
+                    case 'reddit':
+                        shareUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent("Join me on Kkoin Earner!")}`;
+                        break;
+                }
+
+                if (shareUrl) {
+                    try { tg.openLink(shareUrl); } catch(e) { console.error("Could not open link", e); }
+                }
+                hideShareModal();
+            }
+
+            // --- Start the App ---
             main();
         });
-
     </script>
 </body>
-</html>
 
+</html>
 
