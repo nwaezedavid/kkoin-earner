@@ -12,24 +12,26 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <!-- 
-      This script block will be populated by the environment with Firebase config.
-      You don't need to add your own keys.
+      This script block checks for the live environment.
+      If it's not found, it enables "isDemoMode".
     -->
     <script>
       const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
       const firebaseConfigFromEnv = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
       const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
+      // This is the Demo Mode switch:
+      let isDemoMode = false;
       if (!firebaseConfigFromEnv) {
-          console.error("Firebase config is not available.");
-          // Show an error to the user in the UI
-          document.addEventListener('DOMContentLoaded', () => {
-              document.body.innerHTML = `<div style="color: red; padding: 20px; text-align: center; font-family: sans-serif; background-color: #232e3c; color: white; min-height: 100vh;"><h1>Error</h1><p>Firebase configuration is missing.</p><p>This app cannot load.</p></div>`;
-          });
+          isDemoMode = true;
+          console.warn("--- DEMO MODE ACTIVATED ---");
+          console.warn("Firebase config not found. App will use localStorage for testing.");
+          console.warn("All data will be temporary and not saved to the cloud.");
+          console.warn("-----------------------------");
       }
     </script>
 
-    <!-- Firebase SDK Imports -->
+    <!-- Firebase SDK Imports (will only be used if not in demo mode) -->
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
@@ -304,7 +306,7 @@
         <div class="secondary-bg p-6 rounded-2xl shadow-lg w-10/12 max-w-sm">
             <h3 id="modal-title" class="text-lg font-semibold mb-2">Notice</h3>
             <p id="modal-message" class="hint-text mb-4">This is a message.</p>
-            <button id="modal-ok-btn" class="w-full btn-primary font-semibold py-2 px-4 rounded-lg">
+            <button id="modal-ok-btn" class_name="w-full btn-primary font-semibold py-2 px-4 rounded-lg">
                 OK
             </button>
         </div>
@@ -335,13 +337,39 @@
     <!-- Main Application Logic -->
     <script type="module">
         // --- Firebase SDK Imports ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
+        // We only import if we're NOT in demo mode
+        let initializeApp, getAuth, signInAnonymously, signInWithCustomToken, 
             getFirestore, doc, getDoc, setDoc, updateDoc, 
-            collection, addDoc, serverTimestamp, runTransaction,
-            setLogLevel
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+            collection, addDoc, serverTimestamp, runTransaction, setLogLevel;
+
+        if (!isDemoMode) {
+            try {
+                const firebaseApp = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+                const firebaseAuth = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+                const firebaseFirestore = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+
+                initializeApp = firebaseApp.initializeApp;
+                getAuth = firebaseAuth.getAuth;
+                signInAnonymously = firebaseAuth.signInAnonymously;
+                signInWithCustomToken = firebaseAuth.signInWithCustomToken;
+                
+                getFirestore = firebaseFirestore.getFirestore;
+                doc = firebaseFirestore.doc;
+                getDoc = firebaseFirestore.getDoc;
+                setDoc = firebaseFirestore.setDoc;
+                updateDoc = firebaseFirestore.updateDoc;
+                collection = firebaseFirestore.collection;
+                addDoc = firebaseFirestore.addDoc;
+                serverTimestamp = firebaseFirestore.serverTimestamp;
+                runTransaction = firebaseFirestore.runTransaction;
+                setLogLevel = firebaseFirestore.setLogLevel;
+
+            } catch (e) {
+                console.error("Failed to load Firebase modules:", e);
+                isDemoMode = true; // Fallback to demo mode if imports fail
+                // We'll show the modal inside DOMContentLoaded, as the modal doesn't exist yet
+            }
+        }
 
         // --- Initialize Telegram SDK ---
         const tg = window.Telegram.WebApp;
@@ -351,22 +379,21 @@
         tg.setBackgroundColor("var(--tg-theme-bg-color)");
 
         // --- Firebase & App Config (from global vars) ---
-        // const appId, firebaseConfigFromEnv, initialAuthToken are defined in <head>
-        if (!firebaseConfigFromEnv) {
-            // Error is already handled in the <head> by stopping app load
-            throw new Error("Firebase config is not available.");
-        }
-
+        // const appId, firebaseConfigFromEnv, initialAuthToken, isDemoMode are defined in <head>
+        
         // Initialize Firebase
         let app, auth, db;
-        try {
-            app = initializeApp(firebaseConfigFromEnv);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            setLogLevel('Debug'); // Enable Firestore logging
-        } catch (e) {
-            console.error("Firebase Init Error:", e);
-            showModal("Fatal Error", "Could not initialize Firebase. Please try again later.");
+        if (!isDemoMode) {
+            try {
+                app = initializeApp(firebaseConfigFromEnv);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                setLogLevel('Debug'); // Enable Firestore logging
+            } catch (e) {
+                console.error("Firebase Init Error:", e);
+                isDemoMode = true; // Fallback to demo mode
+                // We'll show the modal inside DOMContentLoaded
+            }
         }
 
         // --- App Constants ---
@@ -375,11 +402,12 @@
         const REFERRAL_POINT_BONUS = 500; // Bonus points per referral
         const BASE_AD_LIMIT = 10;
         const AD_LIMIT_PER_REFERRAL = 5;
+        const LOCAL_STORAGE_KEY = 'kkoinEarnerDemoState'; // For demo mode
 
         // --- App State ---
-        // This holds the user's data *after* it's loaded from Firestore
+        // This holds the user's data (loaded from Firestore OR localStorage)
         let appState = {
-            userId: null, // Will be set after auth
+            userId: null, 
             firstName: 'User',
             points: 0,
             claimedTasks: [],
@@ -387,59 +415,37 @@
             lastAdWatchDate: null,
             adLimit: BASE_AD_LIMIT,
             referrals: 0,
-            processingWithdrawal: false // Is a withdrawal in progress?
+            processingWithdrawal: false
         };
 
         // --- DOM Elements ---
-        const pointsDisplay = document.getElementById('points-display');
-        const koinBalanceDisplay = document.getElementById('koin-balance-display');
-        const welcomeMessage = document.getElementById('welcome-message');
-        
-        // Page Elements
-        const pages = document.querySelectorAll('.page');
-        const navButtons = {
-            tasks: document.getElementById('nav-tasks'),
-            friends: document.getElementById('nav-friends'),
-            wallet: document.getElementById('nav-wallet')
-        };
-        
-        // Task Page
-        const adTaskBtn = document.getElementById('ad-task-btn');
-        const inviteBtnHome = document.getElementById('invite-btn-home');
-
-        // Friends Page
-        const copyLinkBtn = document.getElementById('copy-link-btn');
-        const copySuccessMsg = document.getElementById('copy-success-msg');
-        const simulateReferralBtn = document.getElementById('simulate-referral-btn');
-        const totalReferralsDisplay = document.getElementById('total-referrals-display');
-        const referralBonusDisplay = document.getElementById('referral-bonus-display');
-        const totalReferralPointsDisplay = document.getElementById('total-referral-points-display');
-        
-        // Wallet Page
-        const walletPointsDisplay = document.getElementById('wallet-points-display');
-        const walletKoinDisplay = document.getElementById('wallet-koin-display');
-        const progressBar = document.getElementById('progress-bar');
-        const progressText = document.getElementById('progress-text');
-        const walletAddressInput = document.getElementById('wallet-address');
-        const withdrawBtn = document.getElementById('withdraw-btn');
-
-        // Modal Elements
-        const modal = document.getElementById('custom-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalMessage = document.getElementById('modal-message');
-        const modalOkBtn = document.getElementById('modal-ok-btn');
+        // We will define these inside DOMContentLoaded to ensure they exist
+        let pointsDisplay, koinBalanceDisplay, welcomeMessage,
+            pages, navButtons, adTaskBtn, inviteBtnHome,
+            copyLinkBtn, copySuccessMsg, simulateReferralBtn,
+            totalReferralsDisplay, referralBonusDisplay, totalReferralPointsDisplay,
+            walletPointsDisplay, walletKoinDisplay, progressBar, progressText,
+            walletAddressInput, withdrawBtn, modal, modalTitle,
+            modalMessage, modalOkBtn;
         
         // --- Utility Functions ---
         
         function showModal(title, message) {
+            // Ensure modal is defined
+            if (!modal) {
+                modal = document.getElementById('custom-modal');
+                modalTitle = document.getElementById('modal-title');
+                modalMessage = document.getElementById('modal-message');
+                modalOkBtn = document.getElementById('modal-ok-btn');
+                
+                modalOkBtn.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                });
+            }
             modalTitle.textContent = title;
             modalMessage.textContent = message;
             modal.style.display = 'flex';
         }
-
-        modalOkBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
         
         function triggerHaptic(type = 'impact', style = 'medium') {
             if (tg.HapticFeedback) {
@@ -510,6 +516,12 @@
                     button.disabled = true;
                     button.classList.remove('btn-primary');
                     button.classList.add('btn-claimed');
+                } else {
+                    // Ensure buttons are reset if state is reloaded
+                    button.textContent = 'Claim';
+                    button.disabled = false;
+                    button.classList.add('btn-primary');
+                    button.classList.remove('btn-claimed');
                 }
             });
 
@@ -535,7 +547,38 @@
             });
         }
 
-        // --- Firestore & Auth Logic ---
+        // --- Demo Mode (localStorage) Logic ---
+        function loadStateFromLocalStorage() {
+            const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (savedState) {
+                Object.assign(appState, JSON.parse(savedState));
+            }
+            
+            // Set user info from Telegram (even in demo mode)
+            appState.userId = tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'demo_user';
+            appState.firstName = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'Demo User';
+            
+            // Check and reset daily ad count
+            const today = new Date().toISOString().split('T')[0];
+            if (appState.lastAdWatchDate !== today) {
+                appState.adsWatchedToday = 0;
+                appState.lastAdWatchDate = today;
+            }
+            // Recalculate ad limit based on referrals
+            appState.adLimit = BASE_AD_LIMIT + (appState.referrals * AD_LIMIT_PER_REFERRAL);
+
+            saveStateToLocalStorage();
+            console.log("Loaded from localStorage:", appState);
+        }
+
+        function saveStateToLocalStorage() {
+            if (isDemoMode) {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appState));
+            }
+        }
+
+
+        // --- Firestore & Auth Logic (Only runs if NOT in demo mode) ---
 
         async function signInUser() {
             try {
@@ -612,7 +655,7 @@
                         processingWithdrawal: false
                     };
                     await setDoc(userDocRef, newUser);
-                    appState = { ...appState, ...newUser };
+                    Object.assign(appState, newUser); // Merge new user data into state
                     appState.adLimit = BASE_AD_LIMIT; // Already set
                 }
 
@@ -639,25 +682,42 @@
                 await handleMonetagTask(button, reward);
                 return;
             }
-
+            
             // Standard one-time task
-            if (!appState.claimedTasks.includes(taskId)) {
-                triggerHaptic('notification', 'success');
-                button.disabled = true; // Disable immediately
+            if (appState.claimedTasks.includes(taskId)) return; // Already claimed
+
+            triggerHaptic('notification', 'success');
+            button.disabled = true; // Disable immediately
+
+            if (isDemoMode) {
+                // --- DEMO MODE (localStorage) ---
+                appState.points += reward;
+                appState.claimedTasks.push(taskId);
+                saveStateToLocalStorage();
+                updateUI();
                 
+            } else {
+                // --- LIVE MODE (Firestore) ---
                 try {
                     const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
                     
                     // Use a transaction to safely update points and claimed tasks
                     await runTransaction(db, async (transaction) => {
                         const userDoc = await transaction.get(userDocRef);
-                        if (!userDoc.exists()) {
-                            throw "Document does not exist!";
+                        if (!userDoc.exists()) throw "Document does not exist!";
+                        
+                        const data = userDoc.data();
+                        const currentPoints = data.points || 0;
+                        const currentTasks = data.claimedTasks || [];
+
+                        // Server-side check
+                        if (currentTasks.includes(taskId)) {
+                            console.warn("Task already claimed on server.");
+                            return; // Don't grant reward
                         }
                         
-                        const currentPoints = userDoc.data().points || 0;
                         const newPoints = currentPoints + reward;
-                        const newClaimedTasks = [...userDoc.data().claimedTasks || [], taskId];
+                        const newClaimedTasks = [...currentTasks, taskId];
 
                         transaction.update(userDocRef, { 
                             points: newPoints,
@@ -669,15 +729,8 @@
                         appState.claimedTasks = newClaimedTasks;
                     });
                     
-                    console.log("One-time task claimed and saved.");
+                    console.log("One-time task claimed and saved to Firestore.");
                     updateUI(); // Update UI after successful save
-
-                    // Open link for tasks that have one
-                    if (taskId === 'task-1') {
-                        tg.openTelegramLink('https://t.me/your_channel_name');
-                    } else if (taskId === 'task-3') {
-                        tg.openLink('https://x.com/your_x_handle');
-                    }
                     
                 } catch (error) {
                     console.error("One-time Task Save Error:", error);
@@ -685,92 +738,117 @@
                     button.disabled = false; // Re-enable button on error
                 }
             }
+            
+            // Open link for tasks that have one (both modes)
+            if (taskId === 'task-1') {
+                tg.openTelegramLink('https://t.me/your_channel_name');
+            } else if (taskId === 'task-3') {
+                tg.openLink('https://x.com/your_x_handle');
+            }
         }
         
         async function handleMonetagTask(button, reward) {
             // Check limit (local state is already up-to-date)
-            if (appState.adsWatchedToday < appState.adLimit) {
-                triggerHaptic('impact', 'light');
-                button.disabled = true; // Disable button
-                
-                // --- !!! MONETAG INTEGRATION POINT !!! ---
-                // 1. Paste your Monetag SDK <script> tag in the <head>
-                // 2. Call your Monetag Rewarded Ad function here.
-                
-                // Example:
-                // monetag.showRewardedAd().then(async (response) => {
-                //    if (response.success) {
-                //        console.log("Ad watched successfully!");
-                //        await saveAdTaskReward(reward);
-                //    } else {
-                //        console.log("Ad failed to show or was skipped.");
-                //        showModal("Ad Not Completed", "You must watch the full ad to get the reward.");
-                //        button.disabled = false; // Re-enable on failure
-                //    }
-                // });
-                
-                // --- START SIMULATION (Remove this in production) ---
-                console.log("Simulating ad watch...");
-                showModal("Ad Watched (Simulation)", `You earned ${reward} points!`);
-                await saveAdTaskReward(reward); // Simulate a successful watch
-                // --- END SIMULATION ---
-                
-            } else {
+            if (appState.adsWatchedToday >= appState.adLimit) {
                 showModal("Daily Limit", "You have reached your daily ad limit. Invite more friends to increase it!");
                 triggerHaptic('notification', 'error');
+                return;
             }
+            
+            triggerHaptic('impact', 'light');
+            button.disabled = true; // Disable button
+            
+            // --- !!! MONETAG INTEGRATION POINT !!! ---
+            // 1. Paste your Monetag SDK <script> tag in the <head>
+            // 2. Call your Monetag Rewarded Ad function here.
+            
+            // Example:
+            // monetag.showRewardedAd().then(async (response) => {
+            //    if (response.success) {
+            //        console.log("Ad watched successfully!");
+            //        await saveAdTaskReward(reward);
+            //    } else {
+            //        console.log("Ad failed to show or was skipped.");
+            //        showModal("Ad Not Completed", "You must watch the full ad to get the reward.");
+            //        button.disabled = false; // Re-enable on failure
+            //    }
+            // });
+            
+            // --- START SIMULATION (Remove this in production) ---
+            console.log("Simulating ad watch...");
+            // Use a timeout to make the simulation feel real
+            setTimeout(async () => {
+                showModal("Ad Watched (Simulation)", `You earned ${reward} points!`);
+                await saveAdTaskReward(reward); // Simulate a successful watch
+            }, 1000); // 1 second delay
+            // --- END SIMULATION ---
         }
         
         async function saveAdTaskReward(reward) {
-            try {
-                const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-
-                // Use a transaction to safely update points and ad count
-                await runTransaction(db, async (transaction) => {
-                    const userDoc = await transaction.get(userDocRef);
-                    if (!userDoc.exists()) {
-                        throw "Document does not exist!";
-                    }
-
-                    const today = new Date().toISOString().split('T')[0];
-                    let currentAdsWatched = userDoc.data().adsWatchedToday || 0;
-                    
-                    // Double-check date in transaction
-                    if (userDoc.data().lastAdWatchDate !== today) {
-                        currentAdsWatched = 0;
-                    }
-                    
-                    if (currentAdsWatched >= appState.adLimit) {
-                        throw "Ad limit reached!"; // Server-side check
-                    }
-
-                    const newPoints = (userDoc.data().points || 0) + reward;
-                    const newAdsWatched = currentAdsWatched + 1;
-
-                    transaction.update(userDocRef, {
-                        points: newPoints,
-                        adsWatchedToday: newAdsWatched,
-                        lastAdWatchDate: today
-                    });
-
-                    // Update local state
-                    appState.points = newPoints;
-                    appState.adsWatchedToday = newAdsWatched;
-                    appState.lastAdWatchDate = today;
-                });
-                
-                console.log("Ad task reward saved.");
+            if (isDemoMode) {
+                // --- DEMO MODE (localStorage) ---
+                appState.points += reward;
+                appState.adsWatchedToday += 1;
+                // lastAdWatchDate is already set
+                saveStateToLocalStorage();
+                updateUI();
                 triggerHaptic('notification', 'success');
-                updateUI(); // Update UI after successful save
 
-            } catch (error) {
-                console.error("Ad Task Save Error:", error);
-                if (error === "Ad limit reached!") {
-                    showModal("Daily Limit", "You have reached your daily ad limit.");
-                } else {
-                    showModal("Save Error", "Could not save ad reward. Please try again.");
+            } else {
+                // --- LIVE MODE (Firestore) ---
+                try {
+                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+
+                    // Use a transaction to safely update points and ad count
+                    await runTransaction(db, async (transaction) => {
+                        const userDoc = await transaction.get(userDocRef);
+                        if (!userDoc.exists()) throw "Document does not exist!";
+
+                        const data = userDoc.data();
+                        const today = new Date().toISOString().split('T')[0];
+                        let currentAdsWatched = data.adsWatchedToday || 0;
+                        
+                        // Double-check date in transaction
+                        if (data.lastAdWatchDate !== today) {
+                            currentAdsWatched = 0;
+                        }
+                        
+                        // Server-side ad limit check
+                        const serverReferrals = data.referrals || 0;
+                        const serverAdLimit = BASE_AD_LIMIT + (serverReferrals * AD_LIMIT_PER_REFERRAL);
+                        if (currentAdsWatched >= serverAdLimit) {
+                            throw "Ad limit reached!";
+                        }
+
+                        const newPoints = (data.points || 0) + reward;
+                        const newAdsWatched = currentAdsWatched + 1;
+
+                        transaction.update(userDocRef, {
+                            points: newPoints,
+                            adsWatchedToday: newAdsWatched,
+                            lastAdWatchDate: today
+                        });
+
+                        // Update local state
+                        appState.points = newPoints;
+                        appState.adsWatchedToday = newAdsWatched;
+                        appState.lastAdWatchDate = today;
+                        appState.adLimit = serverAdLimit; // Re-sync local limit
+                    });
+                    
+                    console.log("Ad task reward saved to Firestore.");
+                    triggerHaptic('notification', 'success');
+                    updateUI(); // Update UI after successful save
+
+                } catch (error) {
+                    console.error("Ad Task Save Error:", error);
+                    if (error.message === "Ad limit reached!") {
+                        showModal("Daily Limit", "You have reached your daily ad limit.");
+                    } else {
+                        showModal("Save Error", "Could not save ad reward. Please try again.");
+                    }
+                    updateUI(); // Re-sync UI in case of error
                 }
-                updateUI(); // Re-sync UI in case of error
             }
         }
 
@@ -784,37 +862,61 @@
                 return;
             }
 
-            if (appState.points >= MIN_WITHDRAW_POINTS && !appState.processingWithdrawal) {
-                triggerHaptic('notification', 'success');
-                withdrawBtn.disabled = true;
-                withdrawBtn.textContent = 'Processing...';
+            if (appState.points < MIN_WITHDRAW_POINTS) {
+                triggerHaptic('notification', 'error');
+                showModal("Error", "You do not have enough points to withdraw.");
+                return;
+            }
+            
+            if (appState.processingWithdrawal) {
+                triggerHaptic('notification', 'warning');
+                showModal("Error", "You already have a withdrawal in process.");
+                return;
+            }
 
+            triggerHaptic('notification', 'success');
+            withdrawBtn.disabled = true;
+            withdrawBtn.textContent = 'Processing...';
+
+            const koinToWithdraw = MIN_WITHDRAW_POINTS / POINTS_TO_KOIN_RATE;
+
+            if (isDemoMode) {
+                // --- DEMO MODE (localStorage) ---
+                appState.points -= MIN_WITHDRAW_POINTS;
+                appState.processingWithdrawal = true; // Simulates the lock
+                saveStateToLocalStorage();
+                updateUI();
+                walletAddressInput.value = '';
+                showModal("Withdrawal Requested (Demo)", `Your request to withdraw ${koinToWithdraw} $KKoin has been submitted. In a real app, this would be processed by an admin.`);
+                
+                // In demo, unlock it after a few seconds
+                setTimeout(() => {
+                    appState.processingWithdrawal = false;
+                    saveStateToLocalStorage();
+                    updateUI();
+                }, 5000);
+
+            } else {
+                // --- LIVE MODE (Firestore) ---
                 try {
                     const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-                    const koinToWithdraw = MIN_WITHDRAW_POINTS / POINTS_TO_KOIN_RATE;
-
+                    
                     // Use a transaction to create the request and deduct points
                     await runTransaction(db, async (transaction) => {
                         const userDoc = await transaction.get(userDocRef);
-                        if (!userDoc.exists()) {
-                            throw "Document does not exist!";
-                        }
+                        if (!userDoc.exists()) throw "Document does not exist!";
 
-                        const currentPoints = userDoc.data().points || 0;
-                        if (currentPoints < MIN_WITHDRAW_POINTS) {
-                            throw "Not enough points!";
-                        }
-                        if (userDoc.data().processingWithdrawal) {
-                            throw "A withdrawal is already in progress.";
-                        }
+                        const data = userDoc.data();
+                        const currentPoints = data.points || 0;
+                        if (currentPoints < MIN_WITHDRAW_POINTS) throw "Not enough points!";
+                        if (data.processingWithdrawal) throw "A withdrawal is already in progress.";
 
                         // 1. Create the withdrawal request in the PUBLIC collection
-                        // This path is wrong in the user's provided file. It should be /public/data/collection
                         const withdrawalRef = collection(db, `artifacts/${appId}/public/data/withdrawalRequests`);
                         await addDoc(withdrawalRef, {
                             userId: appState.userId,
                             telegramFirstName: appState.firstName,
-                            pointsToWithdraw: MIN_WITHDRAW_POINTS, // Fixed a typo here from the user's file
+                            pointsToWithdraw: MIN_WITHWITHDRAW_POINTS,
                             koinToWithdraw: koinToWithdraw,
                             walletAddress: walletAddress,
                             status: "pending",
@@ -833,28 +935,115 @@
                         appState.processingWithdrawal = true;
                     });
                     
-                    console.log("Withdrawal request saved.");
+                    console.log("Withdrawal request saved to Firestore.");
                     updateUI();
                     walletAddressInput.value = '';
                     showModal("Withdrawal Requested!", `Your request to withdraw ${koinToWithdraw} $KKoin has been submitted. It will be processed soon.`);
                     
                 } catch (error) {
                     console.error("Withdrawal Error:", error);
-                    showModal("Withdrawal Error", `An error occurred: ${error}`);
+                    showModal("Withdrawal Error", `An error occurred: ${error.message}`);
                     updateUI(); // Re-sync UI
                 }
             }
         }
 
+        async function handleSimulateReferral() {
+            triggerHaptic('impact', 'heavy');
+
+            if (isDemoMode) {
+                // --- DEMO MODE (localStorage) ---
+                appState.points += REFERRAL_POINT_BONUS;
+                appState.referrals += 1;
+                appState.adLimit = BASE_AD_LIMIT + (appState.referrals * AD_LIMIT_PER_REFERRAL);
+                saveStateToLocalStorage();
+                updateUI();
+                showModal("Referral Added!", `You earned ${REFERRAL_POINT_BONUS} points! Your new daily ad limit is ${appState.adLimit}.`);
+
+            } else {
+                // --- LIVE MODE (Firestore) ---
+                try {
+                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
+                    
+                    // Use a transaction to safely update referrals and points
+                    await runTransaction(db, async (transaction) => {
+                        const userDoc = await transaction.get(userDocRef);
+                        if (!userDoc.exists()) throw "Document does not exist!";
+
+                        const data = userDoc.data();
+                        const currentPoints = data.points || 0;
+                        const newPoints = currentPoints + REFERRAL_POINT_BONUS;
+                        const newReferrals = (data.referrals || 0) + 1;
+                        const newAdLimit = BASE_AD_LIMIT + (newReferrals * AD_LIMIT_PER_REFERRAL);
+
+                        transaction.update(userDocRef, {
+                            points: newPoints,
+                            referrals: newReferrals
+                        });
+
+                        // Update local state
+                        appState.points = newPoints;
+                        appState.referrals = newReferrals;
+                        appState.adLimit = newAdLimit;
+                    });
+                    
+                    console.log("Referral simulation saved to Firestore.");
+                    updateUI();
+                    showModal("Referral Added!", `You earned ${REFERRAL_POINT_BONUS} points! Your new daily ad limit is ${appState.adLimit}.`);
+
+                } catch (error) {
+                    console.error("Referral Sim Save Error:", error);
+                    showModal("Save Error", "Could not save referral. Please try again.");
+                }
+            }
+        }
 
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
             
-            if (!firebaseConfigFromEnv) {
-                return; // Stop execution if Firebase is not configured
-            }
+            // --- Define All DOM Elements ---
+            pointsDisplay = document.getElementById('points-display');
+            koinBalanceDisplay = document.getElementById('koin-balance-display');
+            welcomeMessage = document.getElementById('welcome-message');
+            pages = document.querySelectorAll('.page');
+            navButtons = {
+                tasks: document.getElementById('nav-tasks'),
+                friends: document.getElementById('nav-friends'),
+                wallet: document.getElementById('nav-wallet')
+            };
+            adTaskBtn = document.getElementById('ad-task-btn');
+            inviteBtnHome = document.getElementById('invite-btn-home');
+            copyLinkBtn = document.getElementById('copy-link-btn');
+            copySuccessMsg = document.getElementById('copy-success-msg');
+            simulateReferralBtn = document.getElementById('simulate-referral-btn');
+            totalReferralsDisplay = document.getElementById('total-referrals-display');
+            referralBonusDisplay = document.getElementById('referral-bonus-display');
+            totalReferralPointsDisplay = document.getElementById('total-referral-points-display');
+            walletPointsDisplay = document.getElementById('wallet-points-display');
+            walletKoinDisplay = document.getElementById('wallet-koin-display');
+            progressBar = document.getElementById('progress-bar');
+            progressText = document.getElementById('progress-text');
+            walletAddressInput = document.getElementById('wallet-address');
+            withdrawBtn = document.getElementById('withdraw-btn');
+            modal = document.getElementById('custom-modal');
+            modalTitle = document.getElementById('modal-title');
+            modalMessage = document.getElementById('modal-message');
+            modalOkBtn = document.getElementById('modal-ok-btn');
             
-            signInUser(); // This will now load data and then update UI
+            // --- This is the main startup logic ---
+            if (isDemoMode) {
+                // Check if imports or init failed and show modal
+                if (!initializeApp) {
+                    showModal("Load Error", "Could not load cloud features. App is in offline mode.");
+                } else if (!app) {
+                     showModal("Fatal Error", "Could not initialize Firebase. App is in offline mode.");
+                }
+                
+                loadStateFromLocalStorage();
+                updateUI();
+            } else {
+                signInUser(); // This will load data from Firestore and then update UI
+            }
 
             // Page navigation
             Object.values(navButtons).forEach(button => {
@@ -864,18 +1053,21 @@
             });
 
             // Task claiming
-            document.getElementById('tasks-page').addEventListener('click', handleClaimTask);
-
-            // Invite button on Home Page
-            inviteBtnHome.addEventListener('click', () => {
-                switchPage('friends-page');
+            // Use event delegation on the page itself
+            document.getElementById('tasks-page').addEventListener('click', (e) => {
+                if (e.target.closest('.claim-btn')) {
+                    handleClaimTask(e);
+                }
+                if (e.target.closest('#invite-btn-home')) {
+                     switchPage('friends-page');
+                }
             });
 
             // Friends page
             copyLinkBtn.addEventListener('click', () => {
                 triggerHaptic('impact', 'light');
                 // !! IMPORTANT: Replace with your bot's username
-                const inviteLink = `https://t.me/YOUR_BOT_USERNAME_HERE?start=${appState.userId}`;
+                const inviteLink = `https://t.me/YOUR_BOT_USERNAME_HERE?start=${appState.userId || 'demo'}`;
                 
                 // Use fallback for clipboard API
                 try {
@@ -897,50 +1089,19 @@
                 }
             });
 
-            simulateReferralBtn.addEventListener('click', async () => {
-                triggerHaptic('impact', 'heavy');
-                
-                try {
-                    const userDocRef = doc(db, `artifacts/${appId}/users/${appState.userId}/data/profile`);
-                    
-                    // Use a transaction to safely update referrals and points
-                    await runTransaction(db, async (transaction) => {
-                        const userDoc = await transaction.get(userDocRef);
-                        if (!userDoc.exists()) {
-                            throw "Document does not exist!";
-                        }
-
-                        const currentPoints = userDoc.data().points || 0;
-                        const newPoints = currentPoints + REFERRAL_POINT_BONUS;
-                        const newReferrals = (userDoc.data().referrals || 0) + 1;
-                        const newAdLimit = BASE_AD_LIMIT + (newReferrals * AD_LIMIT_PER_REFERRAL);
-
-                        transaction.update(userDocRef, {
-                            points: newPoints,
-                            referrals: newReferrals
-                        });
-
-                        // Update local state
-                        appState.points = newPoints;
-                        appState.referrals = newReferrals;
-                        appState.adLimit = newAdLimit;
-                    });
-                    
-                    console.log("Referral simulation saved.");
-                    updateUI();
-                    showModal("Referral Added!", `You earned ${REFERRAL_POINT_BONUS} points! Your new daily ad limit is ${appState.adLimit}.`);
-
-                } catch (error) {
-                    console.error("Referral Sim Save Error:", error);
-                    showModal("Save Error", "Could not save referral. Please try again.");
-                }
-            });
+            simulateReferralBtn.addEventListener('click', handleSimulateReferral);
 
             // Wallet page
             withdrawBtn.addEventListener('click', handleWithdraw);
+            
+            // Modal OK button
+            modalOkBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
         });
 
     </script>
 </body>
 </html>
+
 
