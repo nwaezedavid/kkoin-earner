@@ -321,28 +321,26 @@
         // This is where you paste your Firebase config object.
         // It's safe to have this here; security is handled by Firestore Rules.
         // If this is 'null', the app will enter DEMO MODE.
-        // Import the functions you need from the SDKs you need
-		
-		import { initializeApp } from "firebase/app";
-		import { getAnalytics } from "firebase/analytics";
-		// TODO: Add SDKs for Firebase products that you want to use
-		// https://firebase.google.com/docs/web/setup#available-libraries
-
-		// Your web app's Firebase configuration
-		// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-		const firebaseConfig = {
-		apiKey: "AIzaSyBFwBCKF6Aqt5PaMiLf4JvnCXST-HI48zc",
-		authDomain: "kkoin-earner.firebaseapp.com",
-		projectId: "kkoin-earner",
-		storageBucket: "kkoin-earner.firebasestorage.app",
-		messagingSenderId: "856267442823",
-		appId: "1:856267442823:web:26218a03b440a0c7394622",
-		measurementId: "G-YNXS91ZCB1"
-		};
-
-		// Initialize Firebase
-		const app = initializeApp(firebaseConfig);
-		const analytics = getAnalytics(app);
+        const YOUR_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBFwBCKF6Aqt5PaMiLf4JvnCXST-HI48zc",
+  authDomain: "kkoin-earner.firebaseapp.com",
+  projectId: "kkoin-earner",
+  storageBucket: "kkoin-earner.firebasestorage.app",
+  messagingSenderId: "856267442823",
+  appId: "1:856267442823:web:26218a03b440a0c7394622",
+  measurementId: "G-YNXS91ZCB1"
+}; 
+        /* Example:
+        const YOUR_FIREBASE_CONFIG = {
+          apiKey: "AIza...",
+          authDomain: "myapp.firebaseapp.com",
+          projectId: "myapp-123",
+          storageBucket: "myapp.appspot.com",
+          messagingSenderId: "123456",
+          appId: "1:123456:web:abcd..."
+        };
+        */
+        // ------------------------------------------
 
         // --- Firebase SDK Imports ---
         // These will be dynamically imported based on demo mode status.
@@ -1287,4 +1285,5 @@
     </script>
 </body>
 </html>
+
 
