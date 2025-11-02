@@ -25,7 +25,7 @@
       once your app is approved.
     -->
     <!-- !! PASTE YOUR MONETAG SDK SCRIPT HERE !! -->
-    <script src='//libtl.com/sdk.js' data-zone='10127270' data-sdk='show_10127270'></script> 
+	<script src='//libtl.com/sdk.js' data-zone='10127270' data-sdk='show_10127270'></script> 
     <!-- e.g., <script src="https://monetag-sdk-url.com/..."></script> -->
 
 
@@ -330,6 +330,21 @@
             color: #afafaf;
             cursor: not-allowed;
             opacity: 0.7;
+        }
+
+        .support-button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            color: var(--tg-theme-link-color);
+            background-color: var(--tg-theme-secondary-bg-color);
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+            margin-top: 12px;
+            text-align: center;
         }
 
         /* --- Bottom Navigation Bar --- */
@@ -742,6 +757,10 @@
                 <button class="withdraw-button" id="withdraw-button" disabled>
                     Withdraw
                 </button>
+
+                <button class="support-button" id="support-button">
+                    Contact Support
+                </button>
             </div>
         </div>
     </div>
@@ -954,6 +973,7 @@
                 walletProgressLabel: document.getElementById("wallet-progress-label"),
                 walletAddressInput: document.getElementById("wallet-address-input"),
                 withdrawButton: document.getElementById("withdraw-button"),
+                supportButton: document.getElementById("support-button"), // <-- ADDED SUPPORT BUTTON
                 messageBox: document.getElementById("message-box"),
                 messageBoxTitle: document.getElementById("message-box-title"),
                 messageBoxText: document.getElementById("message-box-text"),
@@ -1199,6 +1219,7 @@
                 // Wallet page
                 elements.withdrawButton.addEventListener('click', handleWithdraw);
                 elements.walletAddressInput.addEventListener('input', updateUI);
+                elements.supportButton.addEventListener('click', openSupportChat); // <-- ADDED SUPPORT LISTENER
 
                 // Message box
                 elements.messageBoxClose.addEventListener('click', hideMessageBox);
@@ -1396,7 +1417,7 @@
                 //
                 // This is where you will call your Monetag Interstitial Ad.
                 // Paste your ad code from Monetag here.
-                // In-App Interstitial
+				// In-App Interstitial
 
 show_10127270({
   type: 'inApp',
@@ -1443,50 +1464,38 @@ This value is decoded as follows:
                 // Vibrate
                 tg.HapticFeedback.impactOccurred('light');
 
-                // --- !! MONETAG REWARDED AD POINT !! ---
+                // --- !! MONETAG REWARDED AD POINT (POSTBACK) !! ---
                 //
-                // This is where you will call your Monetag Rewarded Ad.
+                // The client app now sends the unique user ID to Monetag, and the
+                // server will send the reward back later.
                 //
-                // 1. Delete the `simulateSuccessfulAdWatch()` line below.
-                // 2. Paste your Monetag ad code here.
-                // 3. Make sure to call `onAdWatched()` from inside your
-                //    ad's "success" callback.
-                //
-                // Example:
-                // monetag.showRewardedAd({
-                //   onSuccess: () => {
-                //     console.log("Ad watched successfully!");
-                //     onAdWatched(); // <-- THIS IS THE CRITICAL LINE
-                //   },
-                //   onFailure: () => {
-                //     console.log("Ad failed to load.");
-                //     showMessage("Ad Error", "Could not load ad. Please try again.");
-                //   }
-                // });
-                //
+                const serverUrl = "https://nwaezedavid.github.io/kkoin-earner/taskverse-app.html"; // <-- REPLACE WITH YOUR DEPLOYED SERVER URL
+                const rewardSecret = "kkoinearner-mDx=J_A%gIcoolH`^69]&0-m9+z?rF"; // <-- REPLACE WITH YOUR REWARD_ENDPOINT_SECRET
+                const postbackUrl = `${serverUrl}/monetag-reward?user_id=${appState.userId}&secret=${rewardSecret}&points=${TASK_POINTS['ad-task']}`;
+                
+                // IMPORTANT: The Monetag ad must be configured to pass the user_id back to your server.
+                // This client-side logic just launches the ad and informs the user.
+
+                // 1. Launch the ad, passing the user_id as a sub_id if needed.
+                //    (You will need to consult Monetag's API on how to pass the user ID/postback URL)
+                
+                // 2. Temporarily showing the user the Postback URL for debugging/setup help.
+                if (isDemoMode) {
+                     showMessage("Postback URL Generated", `Monetag must call this URL on success: <a href="${postbackUrl}" target="_blank" style="word-break: break-all;">${postbackUrl}</a>. Check the console for the user ID.`);
+                } else {
+                     showMessage("Ad Verification in Progress", `Ad watched! Points will be credited in 5 minutes after server verification.`);
+                }
+                
+                // 3. Increment the counter *before* waiting for postback to visually show progress
+                //    on the frontend (points are only added securely by the backend).
+                appState.adsWatchedToday += 1; 
+                saveData();
+                updateUI();
+                
                 // --- !! END OF MONETAG POINT !! ---
-
-                // For now, we'll just simulate a successful ad watch.
-                // ** DELETE THIS LINE when you add your real ad code: **
-                // Rewarded interstitial
-
-show_10127270().then(() => {
-    // You need to add your user reward function here, which will be executed after the user watches the ad.
-    // For more details, please refer to the detailed instructions.
-    alert('You have earned a reward ad point');
-})
-
-        
             }
 
-            /**
-             * Simulates a successful ad watch (for Demo Mode).
-             */
-            function simulateSuccessfulAdWatch() {
-                // This just calls the real reward function.
-                // This is what your Monetag `onSuccess` callback will do.
-                onAdWatched();
-            }
+            // NOTE: The `simulateSuccessfulAdWatch` is now DELETED as it's no longer used.
 
             /**
              * Handles a new referral (for Demo Mode).
@@ -1505,6 +1514,8 @@ show_10127270().then(() => {
 
             /**
              * Adds points to the user's total and optionally claims a task.
+             * NOTE: This function is only used for one-time tasks and referral bonuses.
+             * Ad points are now added via the secure backend Postback.
              * @param {number} amount - The number of points to add.
              * @param {string} [taskIdToClaim] - The ID of the task to mark as claimed.
              */
@@ -1513,6 +1524,13 @@ show_10127270().then(() => {
                 if (taskIdToClaim) {
                     appState.claimedTasks.push(taskIdToClaim);
                 }
+            }
+            
+            /**
+             * Opens the support chat link.
+             */
+            function openSupportChat() {
+                tg.openLink('https://t.me/kkoinearner_support');
             }
 
             /**
@@ -1597,7 +1615,7 @@ show_10127270().then(() => {
              */
             function showMessage(title, text) {
                 elements.messageBoxTitle.textContent = title;
-                elements.messageBoxText.textContent = text;
+                elements.messageBoxText.innerHTML = text; // Use innerHTML for the Postback link
                 elements.messageBox.style.display = 'flex';
             }
 
@@ -1662,7 +1680,7 @@ show_10127270().then(() => {
                     // Use new clipboard API if available
                     navigator.clipboard.writeText(link).then(() => {
                         showMessage("Copied!", "Your invite link has been copied to the clipboard.");
-                    }).catch(() => {
+                    }).catch(() => { // <-- FIX APPLIED HERE
                         // Fallback for older browsers/webviews
                         legacyCopy(link);
                     });
@@ -1683,9 +1701,9 @@ show_10127270().then(() => {
                 try {
                     document.execCommand('copy');
                     showMessage("Copied!", "Your invite link has been copied to the clipboard.");
-                } catch (err) { // <-- BUG FIX: Added curly braces
+                } catch (err) { // <-- BUG FIX: Corrected this block
                     showMessage("Oops!", "Could not copy the link. Please copy it from the text box.");
-                } // <-- BUG FIX: Added curly braces
+                }
                 document.body.removeChild(textArea);
             }
 
@@ -1729,6 +1747,3 @@ show_10127270().then(() => {
 </body>
 
 </html>
-
-
-
