@@ -332,6 +332,21 @@
             opacity: 0.7;
         }
 
+        .create-wallet-button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            color: var(--tg-theme-button-text-color);
+            background-color: #5A7EAC; /* A distinct blue/purple for wallet action */
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+            margin-top: 12px;
+            text-align: center;
+        }
+
         .support-button {
             width: 100%;
             padding: 14px;
@@ -758,6 +773,11 @@
                     Withdraw
                 </button>
 
+                <!-- NEW BUTTON FOR CRYPTO WALLET CREATION -->
+                <button class="create-wallet-button" id="create-wallet-button">
+                    Create Crypto Wallet
+                </button>
+
                 <button class="support-button" id="support-button">
                     Contact Support
                 </button>
@@ -973,7 +993,8 @@
                 walletProgressLabel: document.getElementById("wallet-progress-label"),
                 walletAddressInput: document.getElementById("wallet-address-input"),
                 withdrawButton: document.getElementById("withdraw-button"),
-                supportButton: document.getElementById("support-button"), // <-- ADDED SUPPORT BUTTON
+                createWalletButton: document.getElementById("create-wallet-button"), // <-- ADDED WALLET CREATION BUTTON
+                supportButton: document.getElementById("support-button"), 
                 messageBox: document.getElementById("message-box"),
                 messageBoxTitle: document.getElementById("message-box-title"),
                 messageBoxText: document.getElementById("message-box-text"),
@@ -981,6 +1002,8 @@
                 shareModal: document.getElementById("share-modal"),
                 shareMessageText: document.getElementById("share-message-text"),
                 copyReferralBtn: document.getElementById("copy-referral-btn"),
+                // Ad blocker detection element (hidden div)
+                adBlockerDetector: createAdBlockerDetector(),
             };
 
             // Telegram SDK instance
@@ -1006,6 +1029,20 @@
                 // Save and update UI
                 saveData();
                 updateUI();
+            }
+
+            /**
+             * Creates a hidden element used to check for ad blockers.
+             */
+            function createAdBlockerDetector() {
+                const div = document.createElement('div');
+                div.className = 'pub_300x250 pub_ad pub_300x250m pub_ad_block pub_ad_300x250 pub_ad_728x90';
+                div.style.width = '1px';
+                div.style.height = '1px';
+                div.style.position = 'absolute';
+                div.style.left = '-9999px';
+                document.body.appendChild(div);
+                return div;
             }
 
 
@@ -1219,7 +1256,8 @@
                 // Wallet page
                 elements.withdrawButton.addEventListener('click', handleWithdraw);
                 elements.walletAddressInput.addEventListener('input', updateUI);
-                elements.supportButton.addEventListener('click', openSupportChat); // <-- ADDED SUPPORT LISTENER
+                elements.createWalletButton.addEventListener('click', handleCreateWallet); // <-- ADDED LISTENER
+                elements.supportButton.addEventListener('click', openSupportChat); 
 
                 // Message box
                 elements.messageBoxClose.addEventListener('click', hideMessageBox);
@@ -1365,6 +1403,22 @@
                     saveData();
                 }
             }
+            
+            /**
+             * Simple check to see if the ad blocker detector element is visible.
+             * @returns {boolean} True if an ad blocker is likely active.
+             */
+            function checkAdBlocker() {
+                // Check if the detector element is still 1x1, meaning it wasn't blocked/removed.
+                const isBlocked = elements.adBlockerDetector.offsetParent === null || elements.adBlockerDetector.offsetHeight === 0;
+                
+                // Secondary check: sometimes ad blockers change styles to display: none
+                const computedStyle = window.getComputedStyle(elements.adBlockerDetector);
+                const isHidden = computedStyle.display === 'none' || computedStyle.visibility === 'hidden';
+
+                return isBlocked || isHidden;
+            }
+
 
             /**
              * Handles claiming a one-time task (Join Telegram, Follow X).
@@ -1455,9 +1509,18 @@ This value is decoded as follows:
              */
             function handleMonetagTask() {
                 console.log("handleMonetagTask called!"); // Debug log
+
+                // 1. Check Ad Limit
                 const adLimit = BASE_AD_LIMIT + (appState.referrals * REFERRAL_AD_BONUS);
                 if (appState.adsWatchedToday >= adLimit) {
-                    showMessage("Limit Reached", "You've watched all your ads for today. Invite more friends to increase your limit!");
+                    // Custom notification for reaching limit
+                    showMessage("Daily Limit Reached", "You've hit your daily ad limit! Invite friends to increase your limit by 5 ad slots per referral.");
+                    return;
+                }
+                
+                // 2. Check Ad Blocker
+                if (checkAdBlocker()) {
+                    showMessage("Ad Blocker Detected 🛑", "To earn points, please disable your ad blocker for this app, refresh the page, and try again.");
                     return;
                 }
 
@@ -1466,6 +1529,7 @@ This value is decoded as follows:
 
                 // --- !! MONETAG REWARDED AD POINT (POSTBACK) !! ---
                 //
+                // This is the secure S2S Postback integration.
                 // The client app now sends the unique user ID to Monetag, and the
                 // server will send the reward back later.
                 //
@@ -1479,15 +1543,17 @@ This value is decoded as follows:
                 // 1. Launch the ad, passing the user_id as a sub_id if needed.
                 //    (You will need to consult Monetag's API on how to pass the user ID/postback URL)
                 
-                // 2. Temporarily showing the user the Postback URL for debugging/setup help.
+                // 2. We show an initial message indicating verification is needed.
+                
+                // 3. For Demo Mode, show the URL for manual testing.
                 if (isDemoMode) {
-                     showMessage("Postback URL Generated", `Monetag must call this URL on success: <a href="${postbackUrl}" target="_blank" style="word-break: break-all;">${postbackUrl}</a>. Check the console for the user ID.`);
+                     showMessage("Postback URL Generated", `Ad watched! Points will be credited securely by the server. Monetag should call this URL on success: <a href="${postbackUrl}" target="_blank" style="word-break: break-all;">${postbackUrl}</a>.`);
                 } else {
-                     showMessage("Ad Verification in Progress", `Ad watched! Points will be credited in 5 minutes after server verification.`);
+                     showMessage("Verification in Progress", `Ad watched! Points will be credited in a few minutes after server verification.`);
                 }
                 
-                // 3. Increment the counter *before* waiting for postback to visually show progress
-                //    on the frontend (points are only added securely by the backend).
+                // 4. Update the counter *before* waiting for postback to visually show progress
+                //    (points are only added securely by the backend).
                 appState.adsWatchedToday += 1; 
                 saveData();
                 updateUI();
@@ -1524,6 +1590,15 @@ This value is decoded as follows:
                 if (taskIdToClaim) {
                     appState.claimedTasks.push(taskIdToClaim);
                 }
+            }
+
+            /**
+             * Opens the external Telegram bot for wallet creation.
+             */
+            function handleCreateWallet() {
+                const walletBotUrl = 'https://t.me/CoinvetoBot?start=3AC81229';
+                tg.openLink(walletBotUrl);
+                tg.HapticFeedback.impactOccurred('medium');
             }
             
             /**
